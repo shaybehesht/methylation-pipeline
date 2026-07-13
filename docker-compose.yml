@@ -1,0 +1,11 @@
+services:
+  methyl-trio:
+    build: .
+    ports:
+      - "127.0.0.1:8501:8501"
+    volumes:
+      - "${METHYL_TRIO_DATA:-./data}:/data:ro"
+      - "./runs:/app/runs"
+    environment:
+      METHYL_TRIO_DATA_ROOT: /data
+    restart: unless-stopped

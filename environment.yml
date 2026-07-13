@@ -1,0 +1,14 @@
+name: methyl-trio
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - python>=3.11
+  - modkit
+  - samtools
+  - htslib
+  - methylartist
+  - modbamtools
+  - pip
+  - pip:
+      - -e .
