@@ -23,3 +23,8 @@ test = ["pytest>=8.3"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+
+[tool.setuptools.packages.find]
+include = ["app*", "core*"]
+exclude = ["annotations*", "runs*", "tests*"]
+namespaces = true
