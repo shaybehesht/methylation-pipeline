@@ -40,6 +40,11 @@ def intersect_and_rank(
     null = _validate(relative_null, "relative null comparison")
     null_effects = null["effect"].abs().dropna()
     cutoff = float(np.percentile(null_effects, null_percentile)) if len(null_effects) else 0.0
+    null_variable = null[
+        (null["effect"].abs() >= cutoff)
+        & (null["n_sites"] >= min_sites)
+        & (null["pvalue"] <= max_pval)
+    ]
 
     rows: list[dict] = []
     for _, left in one.iterrows():
@@ -57,7 +62,7 @@ def intersect_and_rank(
                 continue
             start, end = max(int(left["start"]), int(right["start"])), min(int(left["end"]), int(right["end"]))
             candidate = pd.Series({"chrom": left["chrom"], "start": start, "end": end})
-            if null.loc[_overlaps(candidate, null)].shape[0]:
+            if null_variable.loc[_overlaps(candidate, null_variable)].shape[0]:
                 continue
             rows.append({
                 "chrom": left["chrom"], "start": start, "end": end,

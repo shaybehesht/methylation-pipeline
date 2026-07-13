@@ -19,8 +19,8 @@ def test_intersection_requires_concordance_cutoff_and_null_subtraction():
         ("chrX", 510, 610, 0.48, 0.001, 8),
     ])
     null = frame([
-        ("chr2", 0, 10, 0.10, 0.5, 8),
-        ("chr1", 130, 140, 0.05, 0.5, 8),
+        ("chr2", 0, 10, 0.05, 0.5, 8),
+        ("chr1", 130, 140, 0.10, 0.001, 8),
     ])
     result, cutoff = intersect_and_rank(
         one, two, null, null_percentile=90,
