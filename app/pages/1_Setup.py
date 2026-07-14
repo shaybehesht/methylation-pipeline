@@ -144,6 +144,11 @@ chosen_mod = st.selectbox(
     "requires an explicit modified base; 5mC is standard for CpG methylation.",
 )
 st.session_state.modified_bases = [chosen_mod]
+st.session_state.combine_strands = st.checkbox(
+    "Combine CpG strands", value=bool(st.session_state.get("combine_strands", True)),
+    help="Merge the two strands of each CpG (modkit --combine-strands). Matches "
+    "the reference pipeline; disable only if the modBAM lacks MN tags.",
+)
 
 st.subheader("Optional phased VCF")
 st.session_state.phased_vcf = file_browser(

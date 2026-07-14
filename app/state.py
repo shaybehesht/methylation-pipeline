@@ -15,6 +15,7 @@ def initialize() -> None:
     ])
     st.session_state.setdefault("assembly", "hg38")
     st.session_state.setdefault("modified_bases", ["5mC"])
+    st.session_state.setdefault("combine_strands", True)
     st.session_state.setdefault("reference_fasta", "")
     st.session_state.setdefault("reference_gtf", "")
     st.session_state.setdefault("reference_cpg_islands", "")
@@ -50,4 +51,5 @@ def config() -> TrioConfig:
         phased_vcf=st.session_state.phased_vcf,
         assembly=st.session_state.assembly,
         modified_bases=list(st.session_state.modified_bases),
+        combine_strands=bool(st.session_state.get("combine_strands", True)),
     )

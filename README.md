@@ -57,16 +57,41 @@ are fully offline as long as the cache is persisted.
    contig lengths, reported basecaller models, and HP-tag availability. Optional
    relationship, clinical status, and phased-VCF fields include inline
    explanations and improve evidence-quality reporting.
-2. Regions supports a genome-wide CpG-island scan, selected chromosomes, or
-   GENCODE-derived promoter/gene-body intervals for an editable gene panel.
+2. Regions selects the analysis mode: genome-wide, selected chromosomes, or a
+   GENCODE-derived promoter/gene-body gene panel.
 3. Thresholds renders controls and rationale from `core/thresholds.py`.
-4. Run generates indexed bedMethyl with `modkit pileup`, scores the same regions
-   for P-vs-R1, P-vs-R2, and R1-vs-R2 with `modkit dmr pair`, and ranks results
-   using the selected assembly's FASTA and matching annotations. The CpG pileup
-   passes an explicit `--modified-bases` (chosen in Setup, `5mC` by default, as
-   required by modkit ≥0.6).
+4. Run executes the analysis and lets you choose where results are saved
+   (the project `./runs` folder or any browsable data root, including an
+   external drive).
 5. Results provides a table, plot, verdict, caveats, self-contained HTML, and a
    one-click complete-run ZIP archive.
+
+## Analysis methodology
+
+The pipeline mirrors the reference trio scripts.
+
+- **Pileup.** `modkit pileup --cpg --combine-strands --modified-bases 5mC
+  --filter-threshold 0.7` per chromosome, then confident 5hmC calls (the
+  `N_other` column) are folded into `N_canonical` so `valid_coverage ==
+  N_mod + N_canonical` and `modkit dmr pair` accepts every row. Output is
+  sorted, bgzipped, and tabix-indexed. (`--combine-strands` is toggleable in
+  Setup for modBAMs without `MN` tags; the modified base is selectable.)
+- **Genome-wide / selected chromosomes.** Per-chromosome `modkit dmr pair
+  --segment` (HMM segmentation) against a one-chromosome FASTA to bound memory.
+  A region is proband-private when it differs from **both** relatives in the
+  same direction, with `num_sites` above the minimum and a Cohen's h 95% CI that
+  excludes zero. The proband-vs-relative-2 / relative-1-vs-relative-2
+  (relative–relative) comparison is the empirical null: its `|effect|`
+  percentile sets the effect cutoff, and any region also variable there is
+  subtracted. Known imprinted gDMRs are flagged as positive controls. chrX is
+  only kept when both comparisons are between same-sex-female samples.
+- **Targeted gene panel.** Promoter (TSS ± 2 kb) and gene-body (± 5 kb) regions
+  are built from GENCODE, the panel is piled up, and each region is scored by a
+  paired Wilcoxon signed-rank test on the CpGs covered at ≥ min-coverage in all
+  three samples. A region is a candidate when it differs from both relatives by
+  ≥ the minimum delta (percentage points) with `p < alpha`, concordant in
+  direction, while the two relatives do not differ there. chrX regions are
+  compared to the female relative only.
 
 The empirical null is the configured percentile (99th by default) of absolute
 R1-vs-R2 effect sizes. A candidate must:

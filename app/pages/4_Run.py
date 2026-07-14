@@ -3,15 +3,39 @@ from pathlib import Path
 
 import streamlit as st
 
+from app.file_picker import data_roots
 from app.state import config, initialize
+
 from core.pipeline import run
 
 initialize()
 st.title("4. Run")
-default_output = f"runs/run-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
-st.session_state.output_dir = st.text_input(
-    "Output directory", st.session_state.get("output_dir", default_output)
+
+st.subheader("Where to save this run")
+run_name = st.text_input(
+    "Run name", st.session_state.get("run_name", f"run-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"),
+    help="A subfolder created inside the chosen location.",
 )
+st.session_state.run_name = run_name
+location_options = ["Project ./runs"] + [str(root) for root in data_roots()]
+chosen_location = st.selectbox(
+    "Save location", location_options,
+    help="Write results to the project's ./runs folder or to any browsable data "
+    "root, including an external drive.",
+)
+if chosen_location == "Project ./runs":
+    base = Path("runs")
+else:
+    base = Path(chosen_location) / "methyl_trio_runs"
+st.session_state.output_dir = str(base / run_name)
+st.caption(f"Output directory: {st.session_state.output_dir}")
+
+mode_labels = {
+    "whole_genome": "Genome-wide HMM segmentation (all autosomes + chrX)",
+    "chromosomes": "Per-chromosome HMM segmentation (selected chromosomes)",
+    "targeted": "Targeted per-region paired Wilcoxon (gene panel)",
+}
+st.caption(f"Analysis: {mode_labels.get(st.session_state.get('region_mode'), st.session_state.get('region_mode'))}")
 
 gtf = st.session_state.get("reference_gtf") or None
 cpg_islands = st.session_state.get("reference_cpg_islands") or None
