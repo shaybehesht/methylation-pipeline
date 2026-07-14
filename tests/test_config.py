@@ -1,6 +1,6 @@
 import pytest
 
-from core.config import Comparison, Role, Sample, Sex, TrioConfig
+from core.config import Affection, Relationship, Role, Sample, Sex, TrioConfig
 
 
 def samples():
@@ -31,3 +31,28 @@ def test_requires_exactly_one_proband_and_unique_labels():
     duplicate[2] = Sample("M", "/b.bam", Sex.MALE, Role.RELATIVE)
     with pytest.raises(ValueError, match="unique"):
         TrioConfig(duplicate, "/ref.fa")
+
+
+def test_optional_metadata_drives_evidence_status():
+    trio = samples()
+    trio[0] = Sample(
+        "P", "/p.bam", Sex.FEMALE, Role.PROBAND,
+        affection=Affection.AFFECTED, tissue="blood", batch="run-1",
+    )
+    trio[1] = Sample(
+        "M", "/m.bam", Sex.FEMALE, Role.RELATIVE,
+        Relationship.MOTHER, Affection.AFFECTED, "blood", "run-1",
+    )
+    trio[2] = Sample(
+        "F", "/f.bam", Sex.MALE, Role.RELATIVE,
+        Relationship.FATHER, Affection.UNAFFECTED, "blood", "run-1",
+    )
+    config = TrioConfig(trio, "/ref.fa", phased_vcf="/family.vcf.gz")
+    assert config.analysis_design() == "phenotype_segregation"
+    assert config.evidence_status() == {
+        "phenotype": "phenotype_segregation",
+        "parent_of_origin": "inputs_available",
+        "mqtl": "phased_vcf_available",
+        "tissue": "matched",
+        "batch": "matched",
+    }

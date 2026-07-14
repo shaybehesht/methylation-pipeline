@@ -24,7 +24,9 @@ during image build. Runtime analysis does not require internet access.
 ## Workflow and method
 
 1. Setup validates exactly three unique samples, one proband, BAM/reference
-   contig lengths, reported basecaller models, and HP-tag availability.
+   contig lengths, reported basecaller models, and HP-tag availability. Optional
+   relationship, clinical status, tissue, batch, and phased-VCF fields include
+   inline explanations and improve evidence-quality reporting.
 2. Regions supports a genome-wide CpG-island scan, selected chromosomes, or
    GENCODE-derived promoter/gene-body intervals for an editable gene panel.
 3. Thresholds renders controls and rationale from `core/thresholds.py`.
@@ -40,6 +42,13 @@ R1-vs-R2 effect sizes. A candidate must:
 - exceed the null cutoff in both comparisons;
 - pass site-count and p-value thresholds; and
 - not overlap a region observed in the relative-relative null.
+
+When exactly one relative is affected and one is unaffected, the app switches
+to phenotype-segregation ranking: affected samples must be similar to each
+other and both must differ concordantly from the unaffected relative. Two
+explicitly affected relatives cannot support this analysis because there is no
+unaffected comparator. Missing clinical status remains optional and falls back
+to the original exploratory trio design with a report caveat.
 
 Region p-values are two-sided Fisher exact tests reconstructed from modkit
 modified and unmodified totals. Targeted runs additionally apply the configured
@@ -76,6 +85,12 @@ sequencing, and processing batches can mimic methylation effects. Missing
 parental lineages leave parent-of-origin mQTL effects unresolved; the report
 generates a composition-specific warning. HP tags are optional for DMR calling
 but required for haplotype read-level interpretation.
+
+A phased VCF and identified mother and father make parent-of-origin and mQTL
+follow-up possible, but their presence alone does not establish either effect.
+The report separately labels missing, matched, and potentially confounded tissue
+and batch metadata rather than treating absent metadata as evidence of no
+confounding.
 
 ## Validation status
 

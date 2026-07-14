@@ -24,6 +24,24 @@ left.metric("Qualifying DMRs", result["candidate_count"])
 right.metric("Candidate / null ratio", f"{result['ratio']:.2f}")
 st.subheader("Interpretation")
 st.write(result["reasoning"])
+if result.get("evidence_status"):
+    st.subheader("What can be assessed from the supplied metadata?")
+    labels = {
+        "phenotype": "Phenotype segregation",
+        "parent_of_origin": "Parent of origin",
+        "mqtl": "Methylation QTL",
+        "tissue": "Tissue effects",
+        "batch": "Batch effects",
+    }
+    evidence = pd.DataFrame([
+        {"Question": labels.get(key, key), "Status": value.replace("_", " ")}
+        for key, value in result["evidence_status"].items()
+    ])
+    st.dataframe(evidence, hide_index=True, use_container_width=True)
+    st.caption(
+        "“Inputs available” means the required metadata exists; it does not by "
+        "itself establish causality or a diagnosis."
+    )
 
 output = Path(result["output"])
 figure = output / "dmr_effects.png"

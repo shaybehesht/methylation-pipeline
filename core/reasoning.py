@@ -17,9 +17,19 @@ def explain(summary: dict, cutoff: float, caveats: list[str]) -> str:
         "DO NOT PURSUE": "The screen does not currently support follow-up.",
     }[verdict]
     caveat_text = " ".join(caveats)
+    if summary.get("design") == "phenotype_segregation":
+        finding = (
+            f"{count} regions were similar between affected samples and differed "
+            f"concordantly from the unaffected relative at the {cutoff:.3g} effect cutoff"
+        )
+    else:
+        finding = (
+            f"{count} concordant proband-specific regions passed the empirical "
+            f"null cutoff ({cutoff:.3g})"
+        )
+    denominator = summary.get("denominator_label", "null regions")
     return (
-        f"{lead} {count} concordant proband-specific regions passed the empirical "
-        f"null cutoff ({cutoff:.3g}); the candidate-to-null ratio was {ratio:.2f}. "
+        f"{lead} {finding}; the candidate-to-{denominator} ratio was {ratio:.2f}. "
         f"This is an exploratory prioritization, not a diagnosis. {caveat_text}"
     )
 

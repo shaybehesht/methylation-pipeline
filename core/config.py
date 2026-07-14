@@ -17,12 +17,29 @@ class Role(str, Enum):
     RELATIVE = "relative"
 
 
+class Affection(str, Enum):
+    AFFECTED = "affected"
+    UNAFFECTED = "unaffected"
+    UNKNOWN = "unknown"
+
+
+class Relationship(str, Enum):
+    MOTHER = "mother"
+    FATHER = "father"
+    SIBLING = "sibling"
+    OTHER = "other"
+
+
 @dataclass(frozen=True)
 class Sample:
     label: str
     bam_path: str
     sex: Sex
     role: Role
+    relationship: Relationship | None = None
+    affection: Affection | None = None
+    tissue: str = ""
+    batch: str = ""
 
     def __post_init__(self) -> None:
         if not self.label.strip():
@@ -71,6 +88,7 @@ class TrioConfig:
     output_dir: str = "runs/latest"
     regions: RegionConfig = field(default_factory=RegionConfig)
     thresholds: dict[str, float | int] = field(default_factory=dict)
+    phased_vcf: str = ""
 
     def __post_init__(self) -> None:
         if len(self.samples) != 3:
@@ -99,9 +117,70 @@ class TrioConfig:
             Comparison(f"{r1.label}_vs_{r2.label}", r1, r2, "null"),
         ]
 
+    def analysis_design(self) -> str:
+        statuses = [sample.affection for sample in self.relatives]
+        if statuses.count(Affection.UNAFFECTED) == 2:
+            return "proband_specific"
+        if statuses.count(Affection.AFFECTED) == 1 and statuses.count(Affection.UNAFFECTED) == 1:
+            return "phenotype_segregation"
+        if statuses.count(Affection.AFFECTED) == 2:
+            return "no_unaffected_control"
+        return "phenotype_unknown"
+
+    def evidence_status(self) -> dict[str, str]:
+        tissues = {sample.tissue.strip().lower() for sample in self.samples if sample.tissue.strip()}
+        batches = {sample.batch.strip().lower() for sample in self.samples if sample.batch.strip()}
+        relationships = {sample.relationship for sample in self.relatives}
+        both_parents = {Relationship.MOTHER, Relationship.FATHER} <= relationships
+        return {
+            "phenotype": self.analysis_design(),
+            "parent_of_origin": (
+                "inputs_available" if both_parents and self.phased_vcf
+                else "needs_both_parents_and_phased_vcf"
+            ),
+            "mqtl": "phased_vcf_available" if self.phased_vcf else "needs_phased_vcf",
+            "tissue": (
+                "not_provided" if not tissues
+                else "matched" if len(tissues) == 1 and all(sample.tissue.strip() for sample in self.samples)
+                else "potentially_confounded"
+            ),
+            "batch": (
+                "not_provided" if not batches
+                else "matched" if len(batches) == 1 and all(sample.batch.strip() for sample in self.samples)
+                else "potentially_confounded"
+            ),
+        }
+
     def caveats(self) -> list[str]:
         sexes = {sample.sex for sample in self.relatives}
         notes = ["Three samples are a family comparison, not a population cohort."]
+        design = self.analysis_design()
+        if design == "phenotype_segregation":
+            notes.append(
+                "One affected and one unaffected relative were provided; candidates are "
+                "ranked for similarity within affected samples and difference from the unaffected sample."
+            )
+        elif design == "phenotype_unknown":
+            notes.append(
+                "Relative clinical status is incomplete; phenotype segregation cannot be assessed."
+            )
+        elif design == "no_unaffected_control":
+            notes.append(
+                "All relatives are affected; no unaffected family control is available."
+            )
+        evidence = self.evidence_status()
+        if evidence["tissue"] == "not_provided":
+            notes.append("Tissue type was not provided, so tissue-specific effects cannot be assessed.")
+        elif evidence["tissue"] == "potentially_confounded":
+            notes.append("Samples have missing or different tissue types; DMRs may be tissue-specific.")
+        if evidence["batch"] == "not_provided":
+            notes.append("Batch metadata was not provided, limiting technical-artifact assessment.")
+        elif evidence["batch"] == "potentially_confounded":
+            notes.append("Samples have missing or different batches; technical effects may mimic DMRs.")
+        if not self.phased_vcf:
+            notes.append("No phased VCF was provided; mQTL and parent-of-origin effects are not resolved.")
+        elif evidence["parent_of_origin"] != "inputs_available":
+            notes.append("A phased VCF is present, but both identified parents are needed to assign parental origin.")
         if Sex.MALE not in sexes:
             notes.append(
                 "No male relative is present; paternal-allele mQTL effects cannot be "

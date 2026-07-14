@@ -90,6 +90,68 @@ def feasibility(candidate_count: int, null_count: int) -> dict[str, float | str]
     return {"verdict": verdict, "ratio": ratio, "candidate_count": candidate_count, "null_count": null_count}
 
 
+def phenotype_segregation_rank(
+    proband_vs_affected: pd.DataFrame,
+    proband_vs_unaffected: pd.DataFrame,
+    affected_vs_unaffected: pd.DataFrame,
+    *,
+    min_delta: float = 0.1,
+    min_sites: int = 5,
+    max_pval: float = 0.01,
+    chromosome_validator=None,
+) -> tuple[pd.DataFrame, int]:
+    """Rank regions shared by affected samples and different from an unaffected relative."""
+    similar = _validate(proband_vs_affected, "proband versus affected comparison")
+    p_diff = _validate(proband_vs_unaffected, "proband versus unaffected comparison")
+    a_diff = _validate(affected_vs_unaffected, "affected versus unaffected comparison")
+    rows: list[dict] = []
+    discordant = 0
+    for _, proband_row in p_diff.iterrows():
+        if chromosome_validator and not chromosome_validator(str(proband_row["chrom"])):
+            continue
+        affected_matches = a_diff.loc[_overlaps(proband_row, a_diff)]
+        similarity_matches = similar.loc[_overlaps(proband_row, similar)]
+        for _, affected_row in affected_matches.iterrows():
+            if (
+                np.sign(proband_row["effect"]) != np.sign(affected_row["effect"])
+                or min(abs(proband_row["effect"]), abs(affected_row["effect"])) < min_delta
+                or min(proband_row["n_sites"], affected_row["n_sites"]) < min_sites
+                or max(proband_row["pvalue"], affected_row["pvalue"]) > max_pval
+            ):
+                discordant += 1
+                continue
+            for _, similarity_row in similarity_matches.iterrows():
+                if abs(similarity_row["effect"]) > min_delta:
+                    discordant += 1
+                    continue
+                start = max(int(proband_row["start"]), int(affected_row["start"]), int(similarity_row["start"]))
+                end = min(int(proband_row["end"]), int(affected_row["end"]), int(similarity_row["end"]))
+                if start >= end:
+                    continue
+                rows.append({
+                    "chrom": proband_row["chrom"], "start": start, "end": end,
+                    "effect_1": float(proband_row["effect"]),
+                    "effect_2": float(affected_row["effect"]),
+                    "affected_similarity_effect": float(similarity_row["effect"]),
+                    "mean_abs_effect": float(np.mean([
+                        abs(proband_row["effect"]), abs(affected_row["effect"])
+                    ])),
+                    "min_sites": int(min(
+                        proband_row["n_sites"], affected_row["n_sites"], similarity_row["n_sites"]
+                    )),
+                    "max_pvalue": float(max(proband_row["pvalue"], affected_row["pvalue"])),
+                })
+    columns = [
+        "chrom", "start", "end", "effect_1", "effect_2", "affected_similarity_effect",
+        "mean_abs_effect", "min_sites", "max_pvalue",
+    ]
+    ranked = pd.DataFrame(rows, columns=columns)
+    if not ranked.empty:
+        ranked = ranked.sort_values(["mean_abs_effect", "max_pvalue"], ascending=[False, True]).reset_index(drop=True)
+        ranked.insert(0, "rank", np.arange(1, len(ranked) + 1))
+    return ranked, discordant
+
+
 def targeted_test(values_a, values_b) -> dict[str, float]:
     from scipy.stats import mannwhitneyu
 

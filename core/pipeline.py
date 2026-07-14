@@ -7,9 +7,9 @@ from typing import Callable
 
 import pandas as pd
 
-from core.analysis import feasibility, intersect_and_rank
+from core.analysis import feasibility, intersect_and_rank, phenotype_segregation_rank
 from core.annotations import genes_from_gtf, write_bed
-from core.config import TrioConfig
+from core.config import Affection, TrioConfig
 from core.dmr import add_site_counts, read_regions, run_pair
 from core.pileup import run_pileup
 from core.plotting import effect_plot
@@ -78,14 +78,43 @@ def run(
             tables.append(table)
             notify(0.6 + 0.08 * (index + 1), f"DMR complete: {comparison.name}")
 
-    candidates, cutoff = intersect_and_rank(
-        tables[0], tables[1], tables[2],
-        null_percentile=float(config.thresholds["null_percentile"]),
-        min_sites=int(config.thresholds["min_sites"]),
-        max_pval=float(config.thresholds["max_pval"]),
-        chromosome_validator=lambda chrom: comparisons[0].valid_chromosome(chrom)
-        and comparisons[1].valid_chromosome(chrom),
-    )
+    design = config.analysis_design()
+    if design == "no_unaffected_control":
+        raise ValueError(
+            "Both relatives are marked affected. Add an unaffected comparator or "
+            "set uncertain clinical status to unknown/not provided."
+        )
+    if design == "phenotype_segregation":
+        r1, r2 = config.relatives
+        if r1.affection == Affection.AFFECTED:
+            similar, p_diff, affected_diff = tables[0], tables[1], tables[2]
+            validators = (comparisons[0], comparisons[1], comparisons[2])
+        else:
+            similar, p_diff, affected_diff = tables[1], tables[0], tables[2].copy()
+            affected_diff["effect"] = -affected_diff["effect"]
+            validators = (comparisons[1], comparisons[0], comparisons[2])
+        cutoff = float(config.thresholds["targeted_min_delta"]) / 100
+        candidates, denominator_count = phenotype_segregation_rank(
+            similar, p_diff, affected_diff,
+            min_delta=cutoff,
+            min_sites=int(config.thresholds["min_sites"]),
+            max_pval=float(config.thresholds["max_pval"]),
+            chromosome_validator=lambda chrom: all(
+                comparison.valid_chromosome(chrom) for comparison in validators
+            ),
+        )
+        denominator_label = "phenotype-discordant regions"
+    else:
+        candidates, cutoff = intersect_and_rank(
+            tables[0], tables[1], tables[2],
+            null_percentile=float(config.thresholds["null_percentile"]),
+            min_sites=int(config.thresholds["min_sites"]),
+            max_pval=float(config.thresholds["max_pval"]),
+            chromosome_validator=lambda chrom: comparisons[0].valid_chromosome(chrom)
+            and comparisons[1].valid_chromosome(chrom),
+        )
+        denominator_count = len(tables[2])
+        denominator_label = "relative-null regions"
     if config.regions.mode == "targeted" and not candidates.empty:
         min_delta = float(config.thresholds["targeted_min_delta"]) / 100
         alpha = float(config.thresholds["alpha"])
@@ -95,11 +124,16 @@ def run(
         ].reset_index(drop=True)
         candidates["rank"] = range(1, len(candidates) + 1)
     candidates.to_csv(output / "proband_specific_DMRs.tsv", sep="\t", index=False)
-    summary = feasibility(len(candidates), len(tables[2]))
+    summary = feasibility(len(candidates), denominator_count)
+    summary.update({"design": design, "denominator_label": denominator_label})
     reasoning = explain(summary, cutoff, config.caveats())
     figure = effect_plot(candidates, output / "dmr_effects.png")
     report = write_html_report(output / "report.html", "Methylation Trio Report", summary, reasoning, candidates, figure)
-    result = {**summary, "null_cutoff": cutoff, "reasoning": reasoning, "report": str(report), "output": str(output)}
+    result = {
+        **summary, "null_cutoff": cutoff, "reasoning": reasoning,
+        "evidence_status": config.evidence_status(),
+        "report": str(report), "output": str(output),
+    }
     (output / "summary.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
     notify(1.0, "Analysis complete")
     return result

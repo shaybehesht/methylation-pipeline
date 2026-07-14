@@ -1,6 +1,6 @@
 import pandas as pd
 
-from core.analysis import feasibility, intersect_and_rank, targeted_test
+from core.analysis import feasibility, intersect_and_rank, phenotype_segregation_rank, targeted_test
 
 
 def frame(rows):
@@ -45,3 +45,25 @@ def test_targeted_wilcoxon_summary():
     result = targeted_test([0.8, 0.9, 0.85], [0.1, 0.2, 0.15])
     assert result["delta_pp"] == 70
     assert 0 <= result["pvalue"] <= 1
+
+
+def test_phenotype_segregation_requires_affected_similarity():
+    p_affected = frame([
+        ("chr1", 100, 200, 0.03, 0.5, 8),
+        ("chr1", 300, 400, 0.25, 0.001, 8),
+    ])
+    p_unaffected = frame([
+        ("chr1", 100, 200, 0.40, 0.001, 8),
+        ("chr1", 300, 400, 0.35, 0.001, 8),
+    ])
+    affected_unaffected = frame([
+        ("chr1", 100, 200, 0.38, 0.001, 8),
+        ("chr1", 300, 400, 0.30, 0.001, 8),
+    ])
+    result, discordant = phenotype_segregation_rank(
+        p_affected, p_unaffected, affected_unaffected
+    )
+    assert result[["start", "affected_similarity_effect"]].to_dict("records") == [
+        {"start": 100, "affected_similarity_effect": 0.03}
+    ]
+    assert discordant == 1

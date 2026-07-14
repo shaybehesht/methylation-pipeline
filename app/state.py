@@ -3,13 +3,13 @@ from __future__ import annotations
 
 import streamlit as st
 
-from core.config import RegionConfig, Role, Sample, Sex, TrioConfig
+from core.config import Affection, RegionConfig, Relationship, Role, Sample, Sex, TrioConfig
 from core.thresholds import defaults
 
 
 def initialize() -> None:
     st.session_state.setdefault("samples", [
-        {"label": "Proband", "bam_path": "", "sex": "F", "role": "proband"},
+        {"label": "Proband", "bam_path": "", "sex": "F", "role": "proband", "affection": "affected"},
         {"label": "Relative 1", "bam_path": "", "sex": "F", "role": "relative"},
         {"label": "Relative 2", "bam_path": "", "sex": "M", "role": "relative"},
     ])
@@ -19,12 +19,18 @@ def initialize() -> None:
     st.session_state.setdefault("genes", ["MECP2", "UBE3A", "SNRPN"])
     st.session_state.setdefault("thresholds", defaults())
     st.session_state.setdefault("qc_passed", False)
+    st.session_state.setdefault("phased_vcf", "")
 
 
 def config() -> TrioConfig:
     initialize()
     samples = [
-        Sample(item["label"], item["bam_path"], Sex(item["sex"]), Role(item["role"]))
+        Sample(
+            item["label"], item["bam_path"], Sex(item["sex"]), Role(item["role"]),
+            Relationship(item["relationship"]) if item.get("relationship") else None,
+            Affection(item["affection"]) if item.get("affection") else None,
+            item.get("tissue", ""), item.get("batch", ""),
+        )
         for item in st.session_state.samples
     ]
     return TrioConfig(
@@ -37,4 +43,5 @@ def config() -> TrioConfig:
             genes=st.session_state.genes,
         ),
         thresholds=st.session_state.thresholds,
+        phased_vcf=st.session_state.phased_vcf,
     )
