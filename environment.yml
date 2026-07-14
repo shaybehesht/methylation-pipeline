@@ -4,7 +4,9 @@ channels:
   - bioconda
 dependencies:
   - python>=3.11
-  - modkit
+  # Bioconda publishes modkit as "ont-modkit" (provides the `modkit` binary and
+  # includes an osx-arm64/Apple Silicon build).
+  - ont-modkit
   - samtools
   - htslib
   - methylartist

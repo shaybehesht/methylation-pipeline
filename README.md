@@ -93,6 +93,18 @@ independently to all three comparisons.
 
 ## Local development
 
+`pip install` provides the Python packages, but the pipeline also shells out to
+the external binaries `modkit` and `tabix` (from `samtools`/`htslib`). Install
+those from conda/bioconda — either create the full environment from
+`environment.yml`, or add the tools to an existing environment. Note that
+bioconda publishes modkit as `ont-modkit` (this also has an Apple Silicon
+`osx-arm64` build):
+
+```bash
+conda env create -f environment.yml          # creates the "methyl-trio" env, or:
+conda install -c bioconda -c conda-forge ont-modkit samtools htslib
+```
+
 ```bash
 python -m pip install -e '.[test]'
 pytest
