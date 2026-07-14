@@ -60,6 +60,15 @@ def defaults() -> dict[str, float | int]:
     return {key: value.default for key, value in REGISTRY.items()}
 
 
+def widget_values(
+    spec: Threshold, current: float | int
+) -> tuple[float | int, float | int, float | int, float | int]:
+    """Return bounds, value, and step with Streamlit-compatible matching types."""
+    values = (spec.minimum, spec.maximum, current, spec.step)
+    numeric_type = float if any(isinstance(value, float) for value in values) else int
+    return tuple(numeric_type(value) for value in values)
+
+
 def validate(values: dict[str, float | int]) -> dict[str, float | int]:
     result = defaults()
     for key, value in values.items():

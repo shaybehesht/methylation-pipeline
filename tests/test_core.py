@@ -6,7 +6,7 @@ import pytest
 from core.dmr import build_command as dmr_command
 from core.pileup import build_command as pileup_command, normalize_counts
 from core.reasoning import write_html_report
-from core.thresholds import defaults, validate
+from core.thresholds import REGISTRY, defaults, validate, widget_values
 
 
 def test_modkit_commands_are_reproducible():
@@ -30,6 +30,13 @@ def test_threshold_validation():
     assert defaults()["null_percentile"] == 99
     with pytest.raises(ValueError, match="between"):
         validate({"alpha": 2})
+
+
+def test_widget_values_have_matching_numeric_types():
+    for spec in REGISTRY.values():
+        values = widget_values(spec, spec.default)
+        assert len({type(value) for value in values}) == 1
+    assert widget_values(REGISTRY["null_percentile"], 99) == (90.0, 100.0, 99.0, 0.5)
 
 
 def test_report_is_self_contained(tmp_path: Path):
