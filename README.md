@@ -34,7 +34,14 @@ are fully offline as long as the cache is persisted.
 - **Local file browser.** Setup selects each modBAM and the optional phased VCF
   from a rooted browser anchored at `METHYL_TRIO_DATA_ROOT` (`/data` under
   Docker, the user home directory natively). Nothing is uploaded through the
-  browser and paths are never typed. Navigation cannot escape the data root.
+  browser and paths are never typed. Navigation cannot escape a data root.
+- **External drives.** `METHYL_TRIO_DATA_ROOT` accepts several locations
+  separated by the OS path separator (`:` on macOS/Linux, `;` on Windows), and a
+  "Location" selector switches between them. When the variable is unset, the
+  home directory plus any mounted external drives (`/Volumes`, `/media`,
+  `/run/media`, `/mnt`) are browsable automatically. Under Docker, mount the
+  drive read-only (e.g. `-v /Volumes/MyDrive:/data-external:ro`) and set
+  `METHYL_TRIO_DATA_ROOT=/data:/data-external`.
 - **BAM index detection.** The app looks for `<file>.bam.bai` or `<file>.bai`
   (also `.csi`) beside each BAM and explains how to create a missing index with
   `samtools index`.
@@ -96,8 +103,11 @@ streamlit run app/streamlit_app.py
 ```
 
 `METHYL_TRIO_DATA_ROOT` bounds the Setup file browser; leave it unset to browse
-from your home directory. `METHYL_TRIO_REFERENCE_CACHE` chooses where downloaded
-assemblies are stored so they persist across runs.
+from your home directory and any mounted external drives, or set it to one or
+more `:`-separated locations to pin the browsable roots (for example
+`export METHYL_TRIO_DATA_ROOT="$HOME/methylation-data:/Volumes/MyDrive"`).
+`METHYL_TRIO_REFERENCE_CACHE` chooses where downloaded assemblies are stored so
+they persist across runs.
 
 ## Outputs
 

@@ -5,7 +5,7 @@ import streamlit as st
 from app.file_picker import (
     BAM_EXTENSIONS,
     VCF_EXTENSIONS,
-    data_root,
+    data_roots,
     detect_bam_index,
     file_browser,
 )
@@ -22,9 +22,12 @@ from core.references import (
 
 initialize()
 st.title("1. Setup")
+_roots = data_roots()
 st.caption(
-    f"Select local files from the data root ({data_root()}). Nothing is uploaded "
-    "through the browser and paths are never typed by hand."
+    "Select local files by browsing these locations: "
+    + ", ".join(str(root) for root in _roots)
+    + ". External drives are included automatically; nothing is uploaded through "
+    "the browser and paths are never typed by hand."
 )
 
 samples = []

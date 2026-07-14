@@ -1,8 +1,11 @@
+import os
 from pathlib import Path
 
+from app import file_picker
 from app.file_picker import (
     BAM_EXTENSIONS,
     data_root,
+    data_roots,
     detect_bam_index,
     list_entries,
     resolve_within,
@@ -62,8 +65,36 @@ def test_detect_bam_index_variants(tmp_path: Path):
 
 
 def test_data_root_uses_env(monkeypatch, tmp_path: Path):
+    monkeypatch.setattr(file_picker, "_EXTERNAL_MOUNT_PARENTS", ())
     monkeypatch.setenv("METHYL_TRIO_DATA_ROOT", str(tmp_path))
     assert data_root() == tmp_path.resolve()
 
     monkeypatch.delenv("METHYL_TRIO_DATA_ROOT", raising=False)
     assert data_root() == Path.home().resolve()
+
+
+def test_data_roots_accepts_multiple_locations(monkeypatch, tmp_path: Path):
+    monkeypatch.setattr(file_picker, "_EXTERNAL_MOUNT_PARENTS", ())
+    first = tmp_path / "local"
+    second = tmp_path / "drive"
+    first.mkdir()
+    second.mkdir()
+    monkeypatch.setenv("METHYL_TRIO_DATA_ROOT", os.pathsep.join([str(first), str(second)]))
+    assert data_roots() == [first.resolve(), second.resolve()]
+
+
+def test_data_roots_auto_detect_external_drives(monkeypatch, tmp_path: Path):
+    mount_parent = tmp_path / "Volumes"
+    (mount_parent / "MyDrive").mkdir(parents=True)
+    empty_parent = tmp_path / "media"
+    empty_parent.mkdir()
+    monkeypatch.setattr(
+        file_picker, "_EXTERNAL_MOUNT_PARENTS", (str(mount_parent), str(empty_parent))
+    )
+    monkeypatch.delenv("METHYL_TRIO_DATA_ROOT", raising=False)
+
+    roots = data_roots()
+    assert roots[0] == Path.home().resolve()
+    # The populated mount parent is offered; the empty one is skipped.
+    assert mount_parent.resolve() in roots
+    assert empty_parent.resolve() not in roots

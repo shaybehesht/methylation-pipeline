@@ -15,21 +15,72 @@ import streamlit as st
 BAM_EXTENSIONS = (".bam",)
 VCF_EXTENSIONS = (".vcf", ".vcf.gz", ".bcf")
 
+# Parents under which operating systems expose removable/external drives. When
+# no data root is configured these are auto-detected so external hard drives are
+# browsable without any extra setup.
+_EXTERNAL_MOUNT_PARENTS = ("/Volumes", "/media", "/run/media", "/mnt")
 
-def data_root() -> Path:
-    """Return the directory that anchors every browse operation.
 
-    Docker deployments mount host data read-only at ``/data`` and set
-    ``METHYL_TRIO_DATA_ROOT`` accordingly; native runs default to the user's
-    home directory.
+def _resolve(path: str | Path) -> Path:
+    candidate = Path(path).expanduser()
+    try:
+        return candidate.resolve()
+    except (OSError, RuntimeError):
+        return candidate
+
+
+def _external_mount_roots() -> list[Path]:
+    """Return existing, non-empty external-mount parents (e.g. ``/Volumes``)."""
+
+    roots: list[Path] = []
+    for parent in _EXTERNAL_MOUNT_PARENTS:
+        parent_path = Path(parent)
+        try:
+            if not parent_path.is_dir():
+                continue
+            has_entries = any(True for _ in parent_path.iterdir())
+        except (OSError, PermissionError):
+            continue
+        if not has_entries:
+            continue
+        resolved = _resolve(parent_path)
+        if resolved not in roots:
+            roots.append(resolved)
+    return roots
+
+
+def data_roots() -> list[Path]:
+    """Return every directory the file browser is allowed to start from.
+
+    ``METHYL_TRIO_DATA_ROOT`` may list several locations separated by the OS
+    path separator (``:`` on POSIX, ``;`` on Windows) — Docker deployments set
+    it to ``/data``. When it is unset, browsing starts at the user's home
+    directory and any mounted external drives (``/Volumes``, ``/media``,
+    ``/run/media``, ``/mnt``) are added automatically.
     """
 
     configured = os.environ.get("METHYL_TRIO_DATA_ROOT")
-    root = Path(configured).expanduser() if configured else Path.home()
-    try:
-        return root.resolve()
-    except (OSError, RuntimeError):
-        return root
+    roots: list[Path] = []
+    if configured:
+        for part in configured.split(os.pathsep):
+            part = part.strip()
+            if not part:
+                continue
+            resolved = _resolve(part)
+            if resolved not in roots:
+                roots.append(resolved)
+    else:
+        roots.append(_resolve(Path.home()))
+        for mount in _external_mount_roots():
+            if mount not in roots:
+                roots.append(mount)
+    return roots or [_resolve(Path.home())]
+
+
+def data_root() -> Path:
+    """Return the primary browse root (the first configured data root)."""
+
+    return data_roots()[0]
 
 
 def resolve_within(root: str | Path, candidate: str | Path) -> Path | None:
@@ -122,35 +173,71 @@ def _current_dir(dir_state_key: str, root: Path) -> Path:
     return current
 
 
+def _normalize_roots(roots: object) -> list[Path]:
+    if roots is None:
+        return data_roots()
+    if isinstance(roots, (str, Path)):
+        roots = [roots]
+    resolved: list[Path] = []
+    for item in roots:
+        candidate = _resolve(item)
+        if candidate not in resolved:
+            resolved.append(candidate)
+    return resolved or data_roots()
+
+
 def file_browser(
     label: str,
     *,
     key: str,
     extensions: tuple[str, ...] = (),
-    root: str | Path | None = None,
+    roots: object = None,
     help: str | None = None,
 ) -> str:
     """Render a rooted directory browser and return the selected file path.
 
-    The returned value is an empty string until the user selects a file. State
-    is namespaced by ``key`` so several independent pickers can coexist on one
+    Browsing is confined to one of the configured data roots (home directory,
+    ``METHYL_TRIO_DATA_ROOT`` entries, and detected external drives). When more
+    than one root is available a "Location" selector chooses between them. The
+    returned value is an empty string until the user selects a file. State is
+    namespaced by ``key`` so several independent pickers can coexist on one
     page.
     """
 
-    browse_root = Path(root).resolve() if root is not None else data_root()
+    root_list = _normalize_roots(roots)
     dir_state_key = f"picker_dir::{key}"
     selection_key = f"picker_selected::{key}"
     nav_widget_key = f"picker_nav::{key}"
     file_widget_key = f"picker_file::{key}"
+    root_widget_key = f"picker_root::{key}"
+
+    st.markdown(f"**{label}**")
+    if help:
+        st.caption(help)
+
+    if len(root_list) > 1:
+        root_options = [str(root) for root in root_list]
+        if st.session_state.get(root_widget_key) not in root_options:
+            st.session_state[root_widget_key] = root_options[0]
+
+        def _switch_root() -> None:
+            st.session_state[dir_state_key] = st.session_state[root_widget_key]
+            st.session_state[nav_widget_key] = "—"
+            st.session_state.pop(file_widget_key, None)
+
+        st.selectbox(
+            "Location", root_options, key=root_widget_key, on_change=_switch_root,
+            help="Choose which data root or external drive to browse.",
+        )
+        browse_root = _resolve(st.session_state[root_widget_key])
+    else:
+        browse_root = root_list[0]
 
     if dir_state_key not in st.session_state:
         st.session_state[dir_state_key] = str(browse_root)
 
     current = _current_dir(dir_state_key, browse_root)
 
-    st.markdown(f"**{label}**")
-    if help:
-        st.caption(help)
     st.caption(f"Browsing: {_display_path(browse_root, current)}")
 
     subdirs, files = list_entries(current, extensions)

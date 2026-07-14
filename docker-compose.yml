@@ -5,9 +5,13 @@ services:
       - "127.0.0.1:8501:8501"
     volumes:
       - "${METHYL_TRIO_DATA:-./data}:/data:ro"
+      # To browse an external drive, mount it read-only and add it to
+      # METHYL_TRIO_DATA_ROOT below, e.g.:
+      #   - "/Volumes/MyDrive:/data-external:ro"
       - "${METHYL_TRIO_REFERENCE_CACHE:-./reference-cache}:/reference-cache"
       - "./runs:/app/runs"
     environment:
-      METHYL_TRIO_DATA_ROOT: /data
+      # Colon-separate multiple locations, e.g. "/data:/data-external".
+      METHYL_TRIO_DATA_ROOT: "${METHYL_TRIO_DATA_ROOT:-/data}"
       METHYL_TRIO_REFERENCE_CACHE: /reference-cache
     restart: unless-stopped
