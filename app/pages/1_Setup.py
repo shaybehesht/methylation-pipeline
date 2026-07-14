@@ -2,12 +2,17 @@ from pathlib import Path
 
 import streamlit as st
 
+from app.file_picker import bam_index, pick_file
 from app.state import initialize
 from core.qc import gate, inspect_bam
+from core.references import ASSEMBLIES, ensure_assembly, is_ready
 
 initialize()
 st.title("1. Setup")
-st.caption("Paths are resolved inside the container; mount host data at /data.")
+st.caption(
+    "Select files from the mounted data directory. Nothing is uploaded through "
+    "the browser; the app reads files in place."
+)
 
 samples = []
 for index, existing in enumerate(st.session_state.samples):
@@ -16,10 +21,19 @@ for index, existing in enumerate(st.session_state.samples):
             "Label", existing["label"], key=f"label_{index}",
             help="A unique display name used in comparisons and output filenames.",
         )
-        bam = st.text_input(
-            "BAM path", existing["bam_path"], key=f"bam_{index}", placeholder="/data/sample.bam",
-            help="Path to this sample's nanopore modBAM. Required to run analysis.",
+        bam = pick_file(
+            "BAM file", key=f"bam_{index}", extensions=(".bam",),
+            help="This sample's nanopore modBAM, chosen from the data directory.",
         )
+        bam = bam or existing.get("bam_path", "")
+        if bam:
+            if bam_index(bam):
+                st.caption(f"Index found: {Path(bam_index(bam)).name}")
+            else:
+                st.warning(
+                    "No .bai index found next to this BAM. Create one with "
+                    "`samtools index` so region fetches work."
+                )
         sex = st.radio(
             "Sex", ["F", "M"], index=["F", "M"].index(existing["sex"]),
             horizontal=True, key=f"sex_{index}",
@@ -45,32 +59,51 @@ for index, existing in enumerate(st.session_state.samples):
             index=affection_options.index(affection_value), key=f"affection_{index}",
             help="Affected samples are expected to resemble one another at disease-associated DMRs; unaffected samples provide contrast. Unknown is recorded uncertainty.",
         )
-        tissue = st.text_input(
-            "Tissue type (optional)", existing.get("tissue", ""), key=f"tissue_{index}",
-            placeholder="e.g. blood",
-            help="DNA methylation is tissue-specific. Different or missing tissues limit interpretation.",
-        )
-        batch = st.text_input(
-            "Sequencing/library batch (optional)", existing.get("batch", ""), key=f"batch_{index}",
-            placeholder="e.g. flowcell or library ID",
-            help="Differences in library preparation, flowcell, run, or basecalling can mimic biological methylation differences.",
-        )
         samples.append({
             "label": label, "bam_path": bam, "sex": sex, "role": role,
             "relationship": None if relationship == "Not provided" else relationship,
             "affection": None if affection == "Not provided" else affection,
-            "tissue": tissue, "batch": batch,
         })
 st.session_state.samples = samples
-st.session_state.reference_fasta = st.text_input(
-    "Reference FASTA", st.session_state.reference_fasta, placeholder="/data/reference.fa",
-    help="The exact genome assembly used to align all BAMs. Contig names and lengths are checked.",
+
+st.subheader("Reference assembly")
+assembly_keys = list(ASSEMBLIES)
+st.session_state.assembly = st.selectbox(
+    "Genome assembly", assembly_keys,
+    index=assembly_keys.index(st.session_state.assembly),
+    format_func=lambda key: ASSEMBLIES[key].label,
+    help="The assembly your BAMs were aligned to. It is downloaded and cached once, then reused offline.",
 )
-st.session_state.phased_vcf = st.text_input(
-    "Phased family VCF (optional)", st.session_state.phased_vcf,
-    placeholder="/data/family.phased.vcf.gz",
-    help="Phased genotypes link alleles across variants and are needed to investigate methylation QTL and parent-of-origin effects. Leave blank if unavailable.",
+if is_ready(st.session_state.assembly):
+    st.success(f"{ASSEMBLIES[st.session_state.assembly].label} is prepared and cached.")
+else:
+    st.info("This assembly is not cached yet. Download and prepare it once before running.")
+if st.button("Download and prepare reference"):
+    progress_bar = st.progress(0.0)
+    status = st.empty()
+
+    def update(fraction: float, message: str) -> None:
+        progress_bar.progress(min(max(fraction, 0.0), 1.0))
+        status.write(message)
+
+    try:
+        bundle = ensure_assembly(st.session_state.assembly, progress=update)
+        st.session_state.reference_fasta = bundle.fasta
+        st.session_state.reference_gtf = bundle.gtf
+        st.session_state.reference_cpg = bundle.cpg_islands
+        st.session_state.reference_ready = True
+        st.success("Reference prepared and cached.")
+    except Exception as exc:
+        st.session_state.reference_ready = False
+        st.error(f"Reference preparation failed: {exc}")
+
+st.subheader("Optional phased VCF")
+vcf = pick_file(
+    "Phased family VCF", key="phased_vcf", extensions=(".vcf.gz", ".vcf", ".bcf"),
+    help="Phased genotypes are needed to investigate methylation QTL and parent-of-origin effects. Optional.",
 )
+st.session_state.phased_vcf = vcf or ""
+
 st.info("Optional fields improve interpretation. Leaving them blank does not prevent the basic trio DMR screen.")
 
 if st.button("Validate BAMs and reference", type="primary"):
@@ -79,14 +112,12 @@ if st.button("Validate BAMs and reference", type="primary"):
             raise ValueError("Select exactly one proband")
         if len({item["label"] for item in samples}) != 3:
             raise ValueError("Labels must be unique")
-        if not Path(st.session_state.reference_fasta).exists():
-            raise FileNotFoundError(st.session_state.reference_fasta)
-        if st.session_state.phased_vcf and not Path(st.session_state.phased_vcf).exists():
-            raise FileNotFoundError(st.session_state.phased_vcf)
-        results = [
-            inspect_bam(item["bam_path"], st.session_state.reference_fasta)
-            for item in samples
-        ]
+        if any(not item["bam_path"] for item in samples):
+            raise ValueError("Select a BAM file for every sample")
+        if not is_ready(st.session_state.assembly):
+            raise ValueError("Download and prepare the reference assembly first")
+        reference = st.session_state.reference_fasta
+        results = [inspect_bam(item["bam_path"], reference) for item in samples]
         passed, errors = gate(results)
         st.session_state.qc_results = results
         st.session_state.qc_passed = passed

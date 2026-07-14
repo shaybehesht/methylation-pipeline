@@ -6,6 +6,11 @@ services:
     volumes:
       - "${METHYL_TRIO_DATA:-./data}:/data:ro"
       - "./runs:/app/runs"
+      - "methyl-trio-references:/references"
     environment:
       METHYL_TRIO_DATA_ROOT: /data
+      METHYL_TRIO_REFERENCE_CACHE: /references
     restart: unless-stopped
+
+volumes:
+  methyl-trio-references:

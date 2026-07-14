@@ -5,6 +5,7 @@ import streamlit as st
 
 from app.state import config, initialize
 from core.pipeline import run
+from core.references import bundle_paths
 
 initialize()
 st.title("4. Run")
@@ -12,7 +13,8 @@ default_output = f"runs/run-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S'
 st.session_state.output_dir = st.text_input(
     "Output directory", st.session_state.get("output_dir", default_output)
 )
-gtf = st.text_input("GENCODE GTF", "/app/annotations/gencode.annotation.gtf.gz")
+bundle = bundle_paths(st.session_state.assembly)
+st.caption(f"Using cached {st.session_state.assembly} annotations for gene and CpG-island regions.")
 
 if not st.session_state.qc_passed:
     st.warning("Run Setup QC successfully before analysis.")
@@ -26,7 +28,7 @@ if st.button("Run methylation analysis", type="primary", disabled=not st.session
         status.write(message)
 
     try:
-        result = run(config(), gtf=gtf, progress=update)
+        result = run(config(), gtf=bundle.gtf, cpg_islands=bundle.cpg_islands, progress=update)
         st.session_state.last_result = result
         st.success(f"Complete: {result['verdict']}")
         log = Path(result["output"]) / "pipeline.log"

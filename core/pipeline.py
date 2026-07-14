@@ -19,7 +19,7 @@ from core.thresholds import validate
 Progress = Callable[[float, str], None]
 
 
-def _scope_bed(config: TrioConfig, output: Path, gtf: str | None, cpg_islands: str) -> Path:
+def _scope_bed(config: TrioConfig, output: Path, gtf: str | None, cpg_islands: str | None) -> Path:
     bed = output / "scope.bed"
     if config.regions.mode == "targeted":
         if not gtf:
@@ -32,6 +32,8 @@ def _scope_bed(config: TrioConfig, output: Path, gtf: str | None, cpg_islands: s
         if missing:
             raise ValueError(f"Genes absent from annotation: {', '.join(missing)}")
         return write_bed(frame, bed)
+    if not cpg_islands:
+        raise ValueError("A CpG-island BED is required for whole-genome and chromosome modes")
     islands = pd.read_csv(cpg_islands, sep="\t", names=["chrom", "start", "end", "name"])
     if config.regions.mode == "chromosomes":
         islands = islands[islands["chrom"].isin(config.regions.chromosomes)]
@@ -44,7 +46,7 @@ def _scope_bed(config: TrioConfig, output: Path, gtf: str | None, cpg_islands: s
 def run(
     config: TrioConfig,
     gtf: str | None = None,
-    cpg_islands: str = "/app/annotations/cpg_islands.bed",
+    cpg_islands: str | None = None,
     progress: Progress | None = None,
 ) -> dict:
     notify = progress or (lambda fraction, message: None)

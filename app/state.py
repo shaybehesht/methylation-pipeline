@@ -13,7 +13,9 @@ def initialize() -> None:
         {"label": "Relative 1", "bam_path": "", "sex": "F", "role": "relative"},
         {"label": "Relative 2", "bam_path": "", "sex": "M", "role": "relative"},
     ])
+    st.session_state.setdefault("assembly", "hg38")
     st.session_state.setdefault("reference_fasta", "")
+    st.session_state.setdefault("reference_ready", False)
     st.session_state.setdefault("region_mode", "chromosomes")
     st.session_state.setdefault("chromosomes", ["chr1", "chr2", "chr11", "chr15"])
     st.session_state.setdefault("genes", ["MECP2", "UBE3A", "SNRPN"])
@@ -29,7 +31,6 @@ def config() -> TrioConfig:
             item["label"], item["bam_path"], Sex(item["sex"]), Role(item["role"]),
             Relationship(item["relationship"]) if item.get("relationship") else None,
             Affection(item["affection"]) if item.get("affection") else None,
-            item.get("tissue", ""), item.get("batch", ""),
         )
         for item in st.session_state.samples
     ]

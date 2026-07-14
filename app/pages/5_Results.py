@@ -5,6 +5,7 @@ import pandas as pd
 import streamlit as st
 
 from app.state import initialize
+from core.reporting import build_run_archive
 
 initialize()
 st.title("5. Results")
@@ -61,4 +62,23 @@ if report.exists():
     st.download_button(
         "Download self-contained HTML report", report.read_bytes(),
         file_name="methylation_trio_report.html", mime="text/html",
+    )
+
+st.subheader("Complete run archive")
+st.caption(
+    "The archive contains everything in the run directory: manifest, logs, "
+    "bedMethyl pileups, pairwise DMR tables, ranked candidates, figures, and the "
+    "HTML report. It can be large because pileups are included."
+)
+if st.button("Build complete ZIP"):
+    with st.spinner("Building archive..."):
+        archive = build_run_archive(output)
+    size_mb = archive.stat().st_size / (1 << 20)
+    st.session_state.archive_path = str(archive)
+    st.success(f"Archive ready ({size_mb:.1f} MB): {archive}")
+archive_path = st.session_state.get("archive_path")
+if archive_path and Path(archive_path).exists() and Path(archive_path).parent == output:
+    st.download_button(
+        "Download complete ZIP", Path(archive_path).read_bytes(),
+        file_name="methyl_trio_run.zip", mime="application/zip",
     )

@@ -1,13 +1,14 @@
 # Methylation Trio Platform
 
 Offline Streamlit application for exploratory nanopore methylation DMR analysis
-of one proband and two relatives. Roles, sexes, paths, region scope, and every
-analysis threshold are configurable.
+of one proband and two relatives. Roles, sexes, region scope, and every analysis
+threshold are configurable. Input files are selected from a mounted data
+directory rather than uploaded, and reference assemblies are managed for you.
 
 ## Start with Docker
 
-Requirements: Docker Compose and a reference FASTA matching all three BAM
-headers.
+Requirements: Docker Compose and a data directory containing the three modBAMs
+(with `.bai` indexes).
 
 ```bash
 export METHYL_TRIO_DATA=/absolute/path/to/data
@@ -15,24 +16,28 @@ docker compose up --build
 ```
 
 Open <http://localhost:8501>. The host data directory is mounted read-only at
-`/data`; results are written under `./runs`.
+`/data`; results are written under `./runs`; downloaded references persist in the
+`methyl-trio-references` volume mounted at `/references`.
 
-The image includes modkit, samtools/htslib, methylartist, modbamtools, Python,
-GENCODE annotation, and UCSC hg38 CpG islands. Annotation downloads occur only
-during image build. Runtime analysis does not require internet access.
+The image includes modkit, samtools/htslib, methylartist, modbamtools, and
+Python. The reference FASTA, GENCODE annotation, and UCSC CpG islands for the
+selected assembly (hg38 or hg19) are downloaded and cached once on first use,
+then reused offline. Set `METHYL_TRIO_REFERENCE_CACHE` to relocate the cache.
 
 ## Workflow and method
 
-1. Setup validates exactly three unique samples, one proband, BAM/reference
-   contig lengths, reported basecaller models, and HP-tag availability. Optional
-   relationship, clinical status, tissue, batch, and phased-VCF fields include
-   inline explanations and improve evidence-quality reporting.
+1. Setup: choose the three BAMs from the data directory with a rooted file
+   browser (no uploads), pick the genome assembly (hg38/hg19) and prepare it
+   once, optionally select a phased VCF, and validate BAM/reference contig
+   lengths, basecaller models, and HP-tag availability. Optional relationship and
+   clinical-status fields include inline explanations.
 2. Regions supports a genome-wide CpG-island scan, selected chromosomes, or
    GENCODE-derived promoter/gene-body intervals for an editable gene panel.
 3. Thresholds renders controls and rationale from `core/thresholds.py`.
 4. Run generates indexed bedMethyl with `modkit pileup`, scores the same regions
    for P-vs-R1, P-vs-R2, and R1-vs-R2 with `modkit dmr pair`, and ranks results.
-5. Results provides a table, plot, verdict, caveats, and self-contained HTML.
+5. Results provides a table, plot, verdict, caveats, a self-contained HTML
+   report, and a complete-run ZIP archive.
 
 The empirical null is the configured percentile (99th by default) of absolute
 R1-vs-R2 effect sizes. A candidate must:
@@ -64,7 +69,10 @@ independently to all three comparisons.
 ```bash
 python -m pip install -e '.[test]'
 pytest
-streamlit run app/streamlit_app.py
+# The picker is rooted at METHYL_TRIO_DATA_ROOT (defaults to your home directory
+# when unset); references cache under METHYL_TRIO_REFERENCE_CACHE.
+METHYL_TRIO_DATA_ROOT=/path/to/data \
+  PYTHONPATH="$PWD" streamlit run app/streamlit_app.py
 ```
 
 ## Outputs
@@ -77,6 +85,10 @@ Each run writes:
 - `proband_specific_DMRs.tsv`;
 - `dmr_effects.png`, `summary.json`, and `report.html`.
 
+The Results page can also build `methyl_trio_run.zip`, a deterministic archive of
+the entire run directory (manifest, logs, pileups, pairwise tables, ranked
+candidates, figures, and report) for download.
+
 ## Scientific limitations
 
 This is a family prioritization screen, not a cohort analysis or diagnostic
@@ -88,9 +100,9 @@ but required for haplotype read-level interpretation.
 
 A phased VCF and identified mother and father make parent-of-origin and mQTL
 follow-up possible, but their presence alone does not establish either effect.
-The report separately labels missing, matched, and potentially confounded tissue
-and batch metadata rather than treating absent metadata as evidence of no
-confounding.
+The report labels each interpretive question (phenotype segregation, parent of
+origin, mQTL) by whether the required metadata is available, rather than treating
+absent inputs as evidence of no effect.
 
 ## Validation status
 

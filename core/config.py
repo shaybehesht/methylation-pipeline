@@ -38,8 +38,6 @@ class Sample:
     role: Role
     relationship: Relationship | None = None
     affection: Affection | None = None
-    tissue: str = ""
-    batch: str = ""
 
     def __post_init__(self) -> None:
         if not self.label.strip():
@@ -128,8 +126,6 @@ class TrioConfig:
         return "phenotype_unknown"
 
     def evidence_status(self) -> dict[str, str]:
-        tissues = {sample.tissue.strip().lower() for sample in self.samples if sample.tissue.strip()}
-        batches = {sample.batch.strip().lower() for sample in self.samples if sample.batch.strip()}
         relationships = {sample.relationship for sample in self.relatives}
         both_parents = {Relationship.MOTHER, Relationship.FATHER} <= relationships
         return {
@@ -139,16 +135,6 @@ class TrioConfig:
                 else "needs_both_parents_and_phased_vcf"
             ),
             "mqtl": "phased_vcf_available" if self.phased_vcf else "needs_phased_vcf",
-            "tissue": (
-                "not_provided" if not tissues
-                else "matched" if len(tissues) == 1 and all(sample.tissue.strip() for sample in self.samples)
-                else "potentially_confounded"
-            ),
-            "batch": (
-                "not_provided" if not batches
-                else "matched" if len(batches) == 1 and all(sample.batch.strip() for sample in self.samples)
-                else "potentially_confounded"
-            ),
         }
 
     def caveats(self) -> list[str]:
@@ -169,14 +155,6 @@ class TrioConfig:
                 "All relatives are affected; no unaffected family control is available."
             )
         evidence = self.evidence_status()
-        if evidence["tissue"] == "not_provided":
-            notes.append("Tissue type was not provided, so tissue-specific effects cannot be assessed.")
-        elif evidence["tissue"] == "potentially_confounded":
-            notes.append("Samples have missing or different tissue types; DMRs may be tissue-specific.")
-        if evidence["batch"] == "not_provided":
-            notes.append("Batch metadata was not provided, limiting technical-artifact assessment.")
-        elif evidence["batch"] == "potentially_confounded":
-            notes.append("Samples have missing or different batches; technical effects may mimic DMRs.")
         if not self.phased_vcf:
             notes.append("No phased VCF was provided; mQTL and parent-of-origin effects are not resolved.")
         elif evidence["parent_of_origin"] != "inputs_available":
