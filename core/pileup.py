@@ -15,11 +15,19 @@ def build_command(
     filter_threshold: float = 0.7,
     region: str | None = None,
     include_bed: str | None = None,
+    modified_bases: tuple[str, ...] = ("5mC",),
 ) -> list[str]:
     command = [
         "modkit", "pileup", bam, output, "--ref", reference,
-        "--filter-threshold", str(filter_threshold), "--cpg", "--bgzf",
+        "--filter-threshold", str(filter_threshold),
     ]
+    # modkit >=0.6 requires --modified-bases whenever --cpg is used; it also
+    # enables the optimized CpG routines. --cpg follows so the variadic list of
+    # modified bases terminates cleanly.
+    if modified_bases:
+        command.append("--modified-bases")
+        command.extend(modified_bases)
+    command.extend(["--cpg", "--bgzf"])
     if region:
         command.extend(["--region", region])
     if include_bed:

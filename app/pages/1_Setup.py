@@ -134,6 +134,17 @@ if st.button(f"Download and prepare {get_assembly(assembly).label}"):
         st.session_state.reference_ready = False
         st.error(f"Reference preparation failed: {exc}")
 
+mod_options = ["5mC", "5hmC"]
+current_mod = (st.session_state.get("modified_bases") or ["5mC"])[0]
+if current_mod not in mod_options:
+    current_mod = "5mC"
+chosen_mod = st.selectbox(
+    "Modified base", mod_options, index=mod_options.index(current_mod),
+    help="Cytosine modification tabulated at CpG sites. modkit's --cpg pileup "
+    "requires an explicit modified base; 5mC is standard for CpG methylation.",
+)
+st.session_state.modified_bases = [chosen_mod]
+
 st.subheader("Optional phased VCF")
 st.session_state.phased_vcf = file_browser(
     "Phased family VCF", key="phased_vcf", extensions=VCF_EXTENSIONS,

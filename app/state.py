@@ -14,6 +14,7 @@ def initialize() -> None:
         {"label": "Relative 2", "bam_path": "", "sex": "M", "role": "relative"},
     ])
     st.session_state.setdefault("assembly", "hg38")
+    st.session_state.setdefault("modified_bases", ["5mC"])
     st.session_state.setdefault("reference_fasta", "")
     st.session_state.setdefault("reference_gtf", "")
     st.session_state.setdefault("reference_cpg_islands", "")
@@ -48,4 +49,5 @@ def config() -> TrioConfig:
         thresholds=st.session_state.thresholds,
         phased_vcf=st.session_state.phased_vcf,
         assembly=st.session_state.assembly,
+        modified_bases=list(st.session_state.modified_bases),
     )

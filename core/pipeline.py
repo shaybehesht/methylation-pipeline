@@ -70,6 +70,7 @@ def run(
                 sample.bam_path, str(pileup_path), config.reference_fasta,
                 filter_threshold=float(config.thresholds["filter_threshold"]),
                 include_bed=str(scope), log=log,
+                modified_bases=tuple(config.modified_bases) or ("5mC",),
             )
             notify(0.1 + 0.15 * (index + 1), f"Pileup complete: {sample.label}")
         tables = []

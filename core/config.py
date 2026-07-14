@@ -88,6 +88,7 @@ class TrioConfig:
     thresholds: dict[str, float | int] = field(default_factory=dict)
     phased_vcf: str = ""
     assembly: str = ""
+    modified_bases: list[str] = field(default_factory=lambda: ["5mC"])
 
     def __post_init__(self) -> None:
         if len(self.samples) != 3:

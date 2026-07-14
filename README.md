@@ -62,7 +62,9 @@ are fully offline as long as the cache is persisted.
 3. Thresholds renders controls and rationale from `core/thresholds.py`.
 4. Run generates indexed bedMethyl with `modkit pileup`, scores the same regions
    for P-vs-R1, P-vs-R2, and R1-vs-R2 with `modkit dmr pair`, and ranks results
-   using the selected assembly's FASTA and matching annotations.
+   using the selected assembly's FASTA and matching annotations. The CpG pileup
+   passes an explicit `--modified-bases` (chosen in Setup, `5mC` by default, as
+   required by modkit ≥0.6).
 5. Results provides a table, plot, verdict, caveats, self-contained HTML, and a
    one-click complete-run ZIP archive.
 

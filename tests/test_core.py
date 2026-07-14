@@ -13,8 +13,19 @@ def test_modkit_commands_are_reproducible():
     pileup = pileup_command("a.bam", "a.bed.gz", "ref.fa", include_bed="scope.bed")
     assert pileup[:3] == ["modkit", "pileup", "a.bam"]
     assert "--bgzf" in pileup and "--include-bed" in pileup
+    # modkit >=0.6 requires --modified-bases when --cpg is used.
+    assert "--modified-bases" in pileup
+    assert pileup[pileup.index("--modified-bases") + 1] == "5mC"
+    assert pileup.index("--modified-bases") < pileup.index("--cpg")
     dmr = dmr_command("a.bed.gz", "b.bed.gz", "out.tsv", "ref.fa", regions="scope.bed")
     assert "--regions-bed" in dmr and "--header" in dmr and "--base" in dmr
+
+
+def test_pileup_supports_multiple_modified_bases():
+    pileup = pileup_command("a.bam", "a.bed.gz", "ref.fa", modified_bases=("5mC", "5hmC"))
+    index = pileup.index("--modified-bases")
+    assert pileup[index + 1:index + 3] == ["5mC", "5hmC"]
+    assert pileup[index + 3] == "--cpg"
 
 
 def test_n_other_is_recomputed():
