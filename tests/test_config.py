@@ -36,16 +36,15 @@ def test_requires_exactly_one_proband_and_unique_labels():
 def test_optional_metadata_drives_evidence_status():
     trio = samples()
     trio[0] = Sample(
-        "P", "/p.bam", Sex.FEMALE, Role.PROBAND,
-        affection=Affection.AFFECTED, tissue="blood", batch="run-1",
+        "P", "/p.bam", Sex.FEMALE, Role.PROBAND, affection=Affection.AFFECTED,
     )
     trio[1] = Sample(
         "M", "/m.bam", Sex.FEMALE, Role.RELATIVE,
-        Relationship.MOTHER, Affection.AFFECTED, "blood", "run-1",
+        Relationship.MOTHER, Affection.AFFECTED,
     )
     trio[2] = Sample(
         "F", "/f.bam", Sex.MALE, Role.RELATIVE,
-        Relationship.FATHER, Affection.UNAFFECTED, "blood", "run-1",
+        Relationship.FATHER, Affection.UNAFFECTED,
     )
     config = TrioConfig(trio, "/ref.fa", phased_vcf="/family.vcf.gz")
     assert config.analysis_design() == "phenotype_segregation"
@@ -53,6 +52,20 @@ def test_optional_metadata_drives_evidence_status():
         "phenotype": "phenotype_segregation",
         "parent_of_origin": "inputs_available",
         "mqtl": "phased_vcf_available",
-        "tissue": "matched",
-        "batch": "matched",
     }
+
+
+def test_tissue_and_batch_metadata_are_removed():
+    import dataclasses
+
+    field_names = {field.name for field in dataclasses.fields(Sample)}
+    assert "tissue" not in field_names
+    assert "batch" not in field_names
+
+    config = TrioConfig(samples(), "/ref.fa")
+    status = config.evidence_status()
+    assert "tissue" not in status
+    assert "batch" not in status
+    caveat_text = " ".join(config.caveats()).lower()
+    assert "tissue" not in caveat_text
+    assert "batch" not in caveat_text
