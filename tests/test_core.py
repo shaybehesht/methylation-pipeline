@@ -10,22 +10,28 @@ from core.thresholds import REGISTRY, defaults, validate, widget_values
 
 
 def test_modkit_commands_are_reproducible():
-    pileup = pileup_command("a.bam", "a.bed.gz", "ref.fa", include_bed="scope.bed")
+    pileup = pileup_command("a.bam", "a.bed.gz", "ref.fa", region="chr1")
     assert pileup[:3] == ["modkit", "pileup", "a.bam"]
-    assert "--bgzf" in pileup and "--include-bed" in pileup
+    assert "--cpg" in pileup and "--combine-strands" in pileup
+    assert "--region" in pileup and pileup[pileup.index("--region") + 1] == "chr1"
     # modkit >=0.6 requires --modified-bases when --cpg is used.
     assert "--modified-bases" in pileup
     assert pileup[pileup.index("--modified-bases") + 1] == "5mC"
-    assert pileup.index("--modified-bases") < pileup.index("--cpg")
-    dmr = dmr_command("a.bed.gz", "b.bed.gz", "out.tsv", "ref.fa", regions="scope.bed")
-    assert "--regions-bed" in dmr and "--header" in dmr and "--base" in dmr
+    assert pileup.index("--cpg") < pileup.index("--modified-bases")
+    # We compress/index ourselves, so --bgzf is not passed to modkit.
+    assert "--bgzf" not in pileup
+    dmr = dmr_command("a.bed.gz", "b.bed.gz", "out.tsv", "ref.fa", segment="seg.bed")
+    assert "--segment" in dmr and "--header" in dmr and "--base" in dmr and "--force" in dmr
 
 
-def test_pileup_supports_multiple_modified_bases():
-    pileup = pileup_command("a.bam", "a.bed.gz", "ref.fa", modified_bases=("5mC", "5hmC"))
+def test_pileup_can_disable_combine_strands_and_take_multiple_mods():
+    pileup = pileup_command(
+        "a.bam", "a.bed.gz", "ref.fa", combine_strands=False, modified_bases=("5mC", "5hmC")
+    )
+    assert "--combine-strands" not in pileup
     index = pileup.index("--modified-bases")
     assert pileup[index + 1:index + 3] == ["5mC", "5hmC"]
-    assert pileup[index + 3] == "--cpg"
+    assert pileup[index + 3] == "--filter-threshold"
 
 
 def test_n_other_is_recomputed():

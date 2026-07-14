@@ -89,6 +89,7 @@ class TrioConfig:
     phased_vcf: str = ""
     assembly: str = ""
     modified_bases: list[str] = field(default_factory=lambda: ["5mC"])
+    combine_strands: bool = True
 
     def __post_init__(self) -> None:
         if len(self.samples) != 3:

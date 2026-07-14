@@ -5,6 +5,7 @@ import subprocess
 import re
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pysam
 from scipy.stats import fisher_exact
@@ -16,16 +17,31 @@ def build_command(
     output: str,
     reference: str,
     *,
+    segment: str | None = None,
     regions: str | None = None,
     min_valid_coverage: int = 10,
+    missing: str | None = None,
+    force: bool = True,
+    threads: int | None = None,
+    log_filepath: str | None = None,
 ) -> list[str]:
     command = [
         "modkit", "dmr", "pair", "-a", left, "-b", right, "-o", output,
         "--ref", reference, "--base", "C", "--header",
         "--min-valid-coverage", str(min_valid_coverage),
     ]
+    if force:
+        command.append("--force")
+    if segment:
+        command.extend(["--segment", segment])
     if regions:
         command.extend(["--regions-bed", regions])
+    if missing:
+        command.extend(["--missing", missing])
+    if threads:
+        command.extend(["--threads", str(threads)])
+    if log_filepath:
+        command.extend(["--log-filepath", log_filepath])
     return command
 
 
@@ -34,7 +50,63 @@ def run_pair(left: str, right: str, output: str, reference: str, log=None, **kwa
     completed = subprocess.run(command, text=True, stdout=log, stderr=log, check=False)
     if completed.returncode:
         raise RuntimeError(f"modkit dmr pair failed with exit code {completed.returncode}")
-    return Path(output)
+    return Path(kwargs.get("segment") or output)
+
+
+def read_segments(path: str | Path) -> pd.DataFrame:
+    """Parse a ``modkit dmr pair --segment`` file into a normalized frame.
+
+    modkit 0.6 segmentation reports no p-value; significance comes from Cohen's
+    h and its 95% CI (a segment is real when the CI excludes zero). Columns are
+    matched loosely because names have shifted between modkit versions.
+    """
+
+    with open(path) as handle:
+        first = handle.readline().rstrip("\n")
+    if not first:
+        return pd.DataFrame(
+            columns=["chrom", "start", "end", "state", "num_sites", "effect",
+                     "cohen_h", "cohen_h_low", "cohen_h_high",
+                     "a_frac_modified", "b_frac_modified", "ci_excludes_zero"]
+        )
+    separator = "\t" if "\t" in first else r"\s+"
+    frame = pd.read_csv(path, sep=separator, engine="python")
+    frame.columns = [str(column).lstrip("#").strip().lower() for column in frame.columns]
+
+    def pick(*names: str) -> str | None:
+        for name in names:
+            if name in frame.columns:
+                return name
+        return None
+
+    c_chrom = pick("chrom", "chr", "chromosome")
+    c_start = pick("chrom_start", "start", "region_start")
+    c_end = pick("chrom_end", "end", "region_end")
+    c_state = pick("name", "state")
+    c_sites = pick("num_sites", "n_sites", "nsites")
+    c_effect = pick("effect_size", "effect")
+    result = pd.DataFrame({
+        "chrom": frame[c_chrom].astype(str),
+        "start": frame[c_start].astype(int),
+        "end": frame[c_end].astype(int),
+    })
+    result["state"] = frame[c_state].astype(str).str.lower() if c_state else "different"
+    result["num_sites"] = (
+        pd.to_numeric(frame[c_sites], errors="coerce").fillna(0).astype(int) if c_sites else 0
+    )
+    result["effect"] = pd.to_numeric(frame[c_effect], errors="coerce") if c_effect else float("nan")
+    for column in ("cohen_h", "cohen_h_low", "cohen_h_high", "a_frac_modified", "b_frac_modified"):
+        result[column] = (
+            pd.to_numeric(frame[column], errors="coerce") if column in frame.columns else float("nan")
+        )
+    if result["cohen_h_low"].notna().any():
+        result["ci_excludes_zero"] = (
+            (np.sign(result["cohen_h_low"]) == np.sign(result["cohen_h_high"]))
+            & result["cohen_h_low"].notna()
+        )
+    else:
+        result["ci_excludes_zero"] = True
+    return result
 
 
 def read_regions(path: str | Path) -> pd.DataFrame:
