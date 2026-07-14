@@ -5,6 +5,9 @@ import pandas as pd
 import streamlit as st
 
 from app.state import initialize
+from core.reporting import archive_size, build_run_archive, human_size
+
+LARGE_ARCHIVE_BYTES = 500 * 1024 * 1024
 
 initialize()
 st.title("5. Results")
@@ -30,8 +33,6 @@ if result.get("evidence_status"):
         "phenotype": "Phenotype segregation",
         "parent_of_origin": "Parent of origin",
         "mqtl": "Methylation QTL",
-        "tissue": "Tissue effects",
-        "batch": "Batch effects",
     }
     evidence = pd.DataFrame([
         {"Question": labels.get(key, key), "Status": value.replace("_", " ")}
@@ -61,4 +62,28 @@ if report.exists():
     st.download_button(
         "Download self-contained HTML report", report.read_bytes(),
         file_name="methylation_trio_report.html", mime="text/html",
+    )
+
+st.subheader("Complete run archive")
+st.caption(
+    "Bundle the entire run directory — manifests, logs, pileups, pairwise "
+    "outputs, tables, figures, and the HTML report — into a single ZIP."
+)
+archive_path = output / "complete_run.zip"
+if st.button("Build complete ZIP", type="primary"):
+    with st.spinner("Packaging the complete run directory..."):
+        archive_path = build_run_archive(output)
+    st.success("Archive built.")
+
+if archive_path.exists():
+    size = archive_size(archive_path)
+    st.write(f"Local archive: `{archive_path}` ({human_size(size)})")
+    if size >= LARGE_ARCHIVE_BYTES:
+        st.warning(
+            f"This archive is large ({human_size(size)}). Downloading through the "
+            "browser may be slow; the local path above can be copied directly."
+        )
+    st.download_button(
+        "Download complete ZIP", archive_path.read_bytes(),
+        file_name="complete_run.zip", mime="application/zip",
     )

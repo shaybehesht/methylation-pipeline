@@ -5,7 +5,9 @@ services:
       - "127.0.0.1:8501:8501"
     volumes:
       - "${METHYL_TRIO_DATA:-./data}:/data:ro"
+      - "${METHYL_TRIO_REFERENCE_CACHE:-./reference-cache}:/reference-cache"
       - "./runs:/app/runs"
     environment:
       METHYL_TRIO_DATA_ROOT: /data
+      METHYL_TRIO_REFERENCE_CACHE: /reference-cache
     restart: unless-stopped

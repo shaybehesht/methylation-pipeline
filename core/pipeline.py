@@ -44,10 +44,18 @@ def _scope_bed(config: TrioConfig, output: Path, gtf: str | None, cpg_islands: s
 def run(
     config: TrioConfig,
     gtf: str | None = None,
-    cpg_islands: str = "/app/annotations/cpg_islands.bed",
+    cpg_islands: str | None = None,
     progress: Progress | None = None,
 ) -> dict:
     notify = progress or (lambda fraction, message: None)
+    if (gtf is None or cpg_islands is None) and config.assembly:
+        from core.references import prepared_paths
+
+        paths = prepared_paths(config.assembly)
+        gtf = gtf or str(paths["gtf"])
+        cpg_islands = cpg_islands or str(paths["cpg_islands"])
+    if cpg_islands is None:
+        cpg_islands = "/app/annotations/cpg_islands.bed"
     config.thresholds = validate(config.thresholds)
     output = config.ensure_output_dir()
     (output / "config.json").write_text(json.dumps(config.to_dict(), indent=2), encoding="utf-8")

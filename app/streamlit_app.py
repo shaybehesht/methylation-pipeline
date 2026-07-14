@@ -18,7 +18,7 @@ st.info(
 )
 st.subheader("Workflow")
 st.markdown(
-    "1. **Setup** — enter BAMs, roles, sexes, and reference FASTA; run QC.\n"
+    "1. **Setup** — browse local BAMs, roles, sexes, and a managed reference assembly; run QC.\n"
     "2. **Regions** — choose whole genome, chromosomes, or target genes.\n"
     "3. **Thresholds** — review and edit every analysis cutoff.\n"
     "4. **Run** — execute modkit locally with progress and logs.\n"

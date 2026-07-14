@@ -12,7 +12,11 @@ default_output = f"runs/run-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S'
 st.session_state.output_dir = st.text_input(
     "Output directory", st.session_state.get("output_dir", default_output)
 )
-gtf = st.text_input("GENCODE GTF", "/app/annotations/gencode.annotation.gtf.gz")
+
+gtf = st.session_state.get("reference_gtf") or None
+cpg_islands = st.session_state.get("reference_cpg_islands") or None
+if gtf:
+    st.caption(f"GENCODE annotation (from selected assembly): {gtf}")
 
 if not st.session_state.qc_passed:
     st.warning("Run Setup QC successfully before analysis.")
@@ -26,7 +30,10 @@ if st.button("Run methylation analysis", type="primary", disabled=not st.session
         status.write(message)
 
     try:
-        result = run(config(), gtf=gtf, progress=update)
+        run_kwargs = {"gtf": gtf, "progress": update}
+        if cpg_islands:
+            run_kwargs["cpg_islands"] = cpg_islands
+        result = run(config(), **run_kwargs)
         st.session_state.last_result = result
         st.success(f"Complete: {result['verdict']}")
         log = Path(result["output"]) / "pipeline.log"
