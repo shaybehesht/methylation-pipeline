@@ -168,8 +168,27 @@ with tab_login:
             "…or explicit regions", "",
             placeholder="chr3:57192837-57232606 chrX:150000-160000",
         )
-        with st.expander("Advanced"):
-            samtools_exe = st.text_input("samtools on server", "samtools")
+        with st.expander("Advanced: samtools location / module"):
+            samtools_exe = st.text_input(
+                "samtools on server", st.session_state.get("bcm_samtools", "samtools"),
+                help="A full path also works, e.g. /opt/conda/envs/bio/bin/samtools.",
+            )
+            st.session_state.bcm_samtools = samtools_exe
+            setup_cmd = st.text_input(
+                "Server setup command (optional)", st.session_state.get("bcm_setup", ""),
+                placeholder="module load samtools    (or: source ~/.bashrc)",
+                help="Runs before samtools. Needed when samtools lives behind a module "
+                "or conda env. Everything runs in a login shell so your profile loads.",
+            )
+            st.session_state.bcm_setup = setup_cmd
+            if st.button("Find samtools on server"):
+                try:
+                    st.code(bcm.locate_tool(
+                        user, pw, samtools_exe.split("/")[-1] or "samtools",
+                        gateway_host=gateway_host, target_host=target_host,
+                    ))
+                except Exception as exc:  # noqa: BLE001
+                    st.error(f"Lookup failed: {exc}")
         if st.button("Fetch region slice"):
             regions: list[str] = []
             genes = [g.strip() for g in genes_text.replace(",", " ").split() if g.strip()]
@@ -189,7 +208,8 @@ with tab_login:
                 with st.spinner("Streaming region slice from the server…"):
                     bcm.slice_bam(
                         user, pw, slice_bam_path, regions, str(local_bam),
-                        samtools=samtools_exe, gateway_host=gateway_host, target_host=target_host,
+                        samtools=samtools_exe, setup=st.session_state.get("bcm_setup", ""),
+                        gateway_host=gateway_host, target_host=target_host,
                     )
                 register_data_root(str(out_dir))
                 st.session_state.bcm_slice_bam = slice_bam_path

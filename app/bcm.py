@@ -155,25 +155,38 @@ def download_to(
         gateway.close()
 
 
-def build_view_command(remote_bam: str, regions: list[str], samtools: str = "samtools") -> str:
+def build_view_command(
+    remote_bam: str, regions: list[str], samtools: str = "samtools",
+    *, setup: str | None = None, login_shell: bool = True,
+) -> str:
     """Build a read-only ``samtools view -b`` command for specific regions.
 
     Regions are required so the whole BAM is never streamed by accident. The
     command only reads on the server; its BAM output goes to stdout (streamed to
     a local file), so no write permission on the server is needed.
+
+    ``setup`` runs first (e.g. ``module load samtools`` or ``source
+    ~/.bashrc``). ``login_shell`` wraps everything in ``bash -lc`` so the
+    server's profile/module initialization is sourced — this fixes
+    ``samtools: command not found`` under non-interactive SSH.
     """
     import shlex
 
     if not regions:
         raise ValueError("At least one region is required to slice a BAM")
     region_args = " ".join(shlex.quote(region) for region in regions)
-    return f"{shlex.quote(samtools)} view -b {shlex.quote(remote_bam)} {region_args}"
+    inner = f"{shlex.quote(samtools)} view -b {shlex.quote(remote_bam)} {region_args}"
+    if setup and setup.strip():
+        inner = f"{setup.strip()} && {inner}"
+    if login_shell:
+        return f"bash -lc {shlex.quote(inner)}"
+    return inner
 
 
 def slice_bam(
     username: str, password: str, remote_bam: str, regions: list[str], local_bam: str,
-    *, samtools: str = "samtools", gateway_host: str = GATEWAY_HOST,
-    target_host: str = TARGET_HOST, chunk: int = 1 << 16,
+    *, samtools: str = "samtools", setup: str | None = None, login_shell: bool = True,
+    gateway_host: str = GATEWAY_HOST, target_host: str = TARGET_HOST, chunk: int = 1 << 16,
 ) -> str:
     """Stream a region-restricted BAM from the server to ``local_bam`` and index it.
 
@@ -185,7 +198,9 @@ def slice_bam(
 
     import pysam
 
-    command = build_view_command(remote_bam, regions, samtools=samtools)
+    command = build_view_command(
+        remote_bam, regions, samtools=samtools, setup=setup, login_shell=login_shell
+    )
     gateway, target = _connect(username, password, gateway_host, target_host)
     try:
         _, stdout, stderr = target.exec_command(command)
@@ -205,6 +220,26 @@ def slice_bam(
         gateway.close()
     pysam.index(str(local_bam))
     return local_bam
+
+
+def locate_tool(
+    username: str, password: str, tool: str = "samtools",
+    *, gateway_host: str = GATEWAY_HOST, target_host: str = TARGET_HOST,
+) -> str:
+    """Return discovery output to help find a tool on the server."""
+    import shlex
+
+    quoted = shlex.quote(tool)
+    discovery = (
+        f"command -v {quoted} || true; "
+        f"module avail 2>&1 | grep -i {quoted} || true; "
+        f"ls /opt/*/bin/{tool} /usr/local/bin/{tool} 2>/dev/null || true"
+    )
+    out, err = run_command(
+        username, password, f"bash -lc {shlex.quote(discovery)}",
+        gateway_host=gateway_host, target_host=target_host,
+    )
+    return (out + ("\n" + err if err.strip() else "")).strip() or "Nothing found."
 
 
 def join(remote_dir: str, name: str) -> str:
