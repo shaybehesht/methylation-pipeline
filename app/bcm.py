@@ -242,6 +242,36 @@ def locate_tool(
     return (out + ("\n" + err if err.strip() else "")).strip() or "Nothing found."
 
 
+def diagnose_server(
+    username: str, password: str,
+    *, gateway_host: str = GATEWAY_HOST, target_host: str = TARGET_HOST,
+) -> str:
+    """Report which analysis tools exist, conda envs, and whether HOME is writable."""
+    import shlex
+
+    script = r"""
+echo "== tools on PATH ==";
+for t in samtools bcftools modkit tabix bgzip python3; do
+  printf "%s: " "$t"; command -v "$t" 2>/dev/null || echo "(missing)";
+done
+echo; echo "== module spider samtools ==";
+{ module spider samtools; } 2>&1 | head -20 || true
+echo; echo "== conda envs ==";
+ls -d ~/miniconda3/envs/* ~/anaconda3/envs/* ~/.conda/envs/* 2>/dev/null || echo "(none)"
+echo; echo "== samtools under home/conda ==";
+ls ~/*/bin/samtools ~/.conda/envs/*/bin/samtools 2>/dev/null || echo "(none)"
+echo; echo "== HOME writable? ==";
+{ f="$HOME/.methyl_trio_write_test"; touch "$f" 2>/dev/null && echo "HOME WRITABLE" && rm -f "$f"; } || echo "HOME NOT WRITABLE"
+echo; echo "== software trees ==";
+ls -d /hgsc_software/* /stornext/*/software 2>/dev/null | head -20 || true
+"""
+    out, err = run_command(
+        username, password, f"bash -lc {shlex.quote(script)}",
+        gateway_host=gateway_host, target_host=target_host,
+    )
+    return (out + ("\n" + err if err.strip() else "")).strip() or "No output."
+
+
 def join(remote_dir: str, name: str) -> str:
     return posixpath.join(remote_dir, name)
 

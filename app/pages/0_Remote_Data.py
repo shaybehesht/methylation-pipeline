@@ -181,7 +181,8 @@ with tab_login:
                 "or conda env. Everything runs in a login shell so your profile loads.",
             )
             st.session_state.bcm_setup = setup_cmd
-            if st.button("Find samtools on server"):
+            find_cols = st.columns(2)
+            if find_cols[0].button("Find samtools on server"):
                 try:
                     st.code(bcm.locate_tool(
                         user, pw, samtools_exe.split("/")[-1] or "samtools",
@@ -189,6 +190,13 @@ with tab_login:
                     ))
                 except Exception as exc:  # noqa: BLE001
                     st.error(f"Lookup failed: {exc}")
+            if find_cols[1].button("Diagnose server (tools + write access)"):
+                try:
+                    st.code(bcm.diagnose_server(
+                        user, pw, gateway_host=gateway_host, target_host=target_host,
+                    ))
+                except Exception as exc:  # noqa: BLE001
+                    st.error(f"Diagnosis failed: {exc}")
         if st.button("Fetch region slice"):
             regions: list[str] = []
             genes = [g.strip() for g in genes_text.replace(",", " ").split() if g.strip()]
