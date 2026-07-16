@@ -150,6 +150,10 @@ pytest
 # Optional: point the browser and cache somewhere convenient.
 export METHYL_TRIO_DATA_ROOT="$HOME/methylation-data"
 export METHYL_TRIO_REFERENCE_CACHE="$HOME/.cache/methyl-trio/references"
+
+# Launch (any one of these):
+methyl-trio                 # console command installed by `pip install`
+./run.sh                    # helper script in the repo root
 streamlit run app/streamlit_app.py
 ```
 
