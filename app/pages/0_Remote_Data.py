@@ -5,6 +5,7 @@ import streamlit as st
 from app import bcm, remote
 from app.file_picker import data_roots, register_data_root, register_remote_mapping
 from app.state import initialize
+from core.annotations import extract_to_regions, panel_regions
 
 initialize()
 st.title("0. Remote data (BCM / SSH)")
@@ -144,6 +145,60 @@ with tab_login:
             "BAMs are large; for those, mount the folder (other tab) and run targeted "
             "analysis in place, or run genome-wide on the server."
         )
+
+        st.divider()
+        st.subheader("Fetch a region slice (no server writes, tiny download)")
+        st.caption(
+            "Reads only the regions you name from a remote BAM (via read-only "
+            "`samtools view` on the server) and streams them to a small local BAM "
+            "that is indexed and made browsable. Ideal for a targeted gene panel "
+            "when you cannot write on the server."
+        )
+        slice_bam_path = st.text_input(
+            "Remote BAM path", st.session_state.get("bcm_slice_bam", ""),
+            placeholder="/stornext/.../TrioAnalysis_BH16732/proband.bam",
+        )
+        gtf_local = st.session_state.get("reference_gtf") or ""
+        genes_text = st.text_input(
+            "Genes (comma/space separated)", "",
+            help="Requires a prepared reference (Setup → download hg38/hg19) so gene "
+            "coordinates are known locally. Leave blank to use explicit regions below.",
+        )
+        regions_text = st.text_input(
+            "…or explicit regions", "",
+            placeholder="chr3:57192837-57232606 chrX:150000-160000",
+        )
+        with st.expander("Advanced"):
+            samtools_exe = st.text_input("samtools on server", "samtools")
+        if st.button("Fetch region slice"):
+            regions: list[str] = []
+            genes = [g.strip() for g in genes_text.replace(",", " ").split() if g.strip()]
+            try:
+                if genes:
+                    if not gtf_local:
+                        raise ValueError("Prepare a reference on the Setup page first to resolve gene coordinates.")
+                    _, extract, missing = panel_regions(gtf_local, genes, 2000, 5000)
+                    regions = extract_to_regions(extract)
+                    if missing:
+                        st.warning(f"Not found in annotation: {', '.join(missing)}")
+                regions += [token for token in regions_text.replace(",", " ").split() if token]
+                if not slice_bam_path or not regions:
+                    raise ValueError("Provide a remote BAM path and at least one gene or region.")
+                out_dir = Path(st.session_state.get("bcm_download_dir", str(Path.home() / "methyl-trio-downloads")))
+                local_bam = out_dir / (Path(slice_bam_path).stem + ".slice.bam")
+                with st.spinner("Streaming region slice from the server…"):
+                    bcm.slice_bam(
+                        user, pw, slice_bam_path, regions, str(local_bam),
+                        samtools=samtools_exe, gateway_host=gateway_host, target_host=target_host,
+                    )
+                register_data_root(str(out_dir))
+                st.session_state.bcm_slice_bam = slice_bam_path
+                st.success(
+                    f"Wrote {local_bam} ({len(regions)} regions) and indexed it. "
+                    f"'{out_dir}' is now browsable in Setup — select the .slice.bam there."
+                )
+            except Exception as exc:  # noqa: BLE001
+                st.error(f"Slice failed: {exc}")
 
 with tab_mount:
     st.info(

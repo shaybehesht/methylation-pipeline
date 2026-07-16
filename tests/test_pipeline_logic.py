@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from core.annotations import panel_regions, write_bed3
+from core.annotations import extract_to_regions, panel_regions, write_bed3
 from core.dmr import read_segments
 from core.pileup import fold_hmc
 from core.segments import (
@@ -138,3 +138,11 @@ def test_write_bed3_emits_three_columns(tmp_path: Path):
     path = write_bed3(frame, tmp_path / "scope.bed")
     lines = path.read_text().strip().splitlines()
     assert lines == ["chr1\t10\t20"]
+
+
+def test_extract_to_regions_converts_bed_to_1based():
+    frame = pd.DataFrame([
+        {"chrom": "chr3", "start": 100, "end": 200},
+        {"chrom": "chrX", "start": 0, "end": 50},
+    ])
+    assert extract_to_regions(frame) == ["chr3:101-200", "chrX:1-50"]

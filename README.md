@@ -55,6 +55,10 @@ are fully offline as long as the cache is persisted.
     `paramiko`), browse the server tree by path, and download the specific files
     you need into a local folder that then becomes browsable in Setup. No FUSE
     install required. `login1`'s host key is verified against `~/.ssh/known_hosts`.
+    A **region-slice** action streams only the CpG/gene regions you name from a
+    remote BAM (read-only `samtools view` on the server) into a small local,
+    indexed BAM — no write permission on the server and only megabytes
+    transferred, ideal for a targeted gene panel.
   - **Mount with SSHFS:** the app prints the exact `sshfs` command (with
     `ProxyJump`) for you to run in your own terminal — so your password/2FA stay
     between you and the server — then registers the read-only mount so BAMs are

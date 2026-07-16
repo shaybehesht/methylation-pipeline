@@ -155,6 +155,58 @@ def download_to(
         gateway.close()
 
 
+def build_view_command(remote_bam: str, regions: list[str], samtools: str = "samtools") -> str:
+    """Build a read-only ``samtools view -b`` command for specific regions.
+
+    Regions are required so the whole BAM is never streamed by accident. The
+    command only reads on the server; its BAM output goes to stdout (streamed to
+    a local file), so no write permission on the server is needed.
+    """
+    import shlex
+
+    if not regions:
+        raise ValueError("At least one region is required to slice a BAM")
+    region_args = " ".join(shlex.quote(region) for region in regions)
+    return f"{shlex.quote(samtools)} view -b {shlex.quote(remote_bam)} {region_args}"
+
+
+def slice_bam(
+    username: str, password: str, remote_bam: str, regions: list[str], local_bam: str,
+    *, samtools: str = "samtools", gateway_host: str = GATEWAY_HOST,
+    target_host: str = TARGET_HOST, chunk: int = 1 << 16,
+) -> str:
+    """Stream a region-restricted BAM from the server to ``local_bam`` and index it.
+
+    Reads only on the server (no writes there); transfers only the requested
+    regions. The local file is coordinate-sorted (it inherits the server BAM's
+    order) and indexed with pysam.
+    """
+    import os
+
+    import pysam
+
+    command = build_view_command(remote_bam, regions, samtools=samtools)
+    gateway, target = _connect(username, password, gateway_host, target_host)
+    try:
+        _, stdout, stderr = target.exec_command(command)
+        os.makedirs(os.path.dirname(local_bam) or ".", exist_ok=True)
+        with open(local_bam, "wb") as handle:
+            while True:
+                data = stdout.read(chunk)
+                if not data:
+                    break
+                handle.write(data)
+        error = stderr.read().decode(errors="replace")
+        status = stdout.channel.recv_exit_status()
+        if status != 0:
+            raise RuntimeError(error.strip() or f"samtools exited with code {status}")
+    finally:
+        target.close()
+        gateway.close()
+    pysam.index(str(local_bam))
+    return local_bam
+
+
 def join(remote_dir: str, name: str) -> str:
     return posixpath.join(remote_dir, name)
 

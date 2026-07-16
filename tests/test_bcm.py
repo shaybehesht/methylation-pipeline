@@ -27,3 +27,25 @@ def test_join_and_parent_are_posix():
 def test_paramiko_available():
     # paramiko is a declared dependency, so it should import in the test env.
     assert bcm.paramiko_available() is True
+
+
+def test_build_view_command_is_read_only_and_region_scoped():
+    cmd = bcm.build_view_command("/stornext/x/proband.bam", ["chr3:100-200", "chrX:5-9"])
+    assert cmd.startswith("samtools view -b ")
+    assert "/stornext/x/proband.bam" in cmd
+    assert "chr3:100-200" in cmd and "chrX:5-9" in cmd
+    # no write/redirect on the server
+    assert ">" not in cmd and "-o " not in cmd
+
+
+def test_build_view_command_requires_regions():
+    import pytest
+
+    with pytest.raises(ValueError):
+        bcm.build_view_command("/x.bam", [])
+
+
+def test_build_view_command_quotes_spaces():
+    cmd = bcm.build_view_command("/a b/proband.bam", ["chr1:1-2"], samtools="/opt/s t/samtools")
+    assert "'/a b/proband.bam'" in cmd
+    assert "'/opt/s t/samtools'" in cmd

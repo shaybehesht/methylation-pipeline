@@ -45,6 +45,15 @@ def write_bed(frame: pd.DataFrame, path: str | Path) -> Path:
     return output
 
 
+def extract_to_regions(frame: pd.DataFrame) -> list[str]:
+    """Convert a 0-based half-open BED frame into 1-based samtools region strings."""
+    regions: list[str] = []
+    for _, row in frame.iterrows():
+        start = max(1, int(row["start"]) + 1)
+        regions.append(f"{row['chrom']}:{start}-{int(row['end'])}")
+    return regions
+
+
 def write_bed3(frame: pd.DataFrame, path: str | Path) -> Path:
     """Write a plain 3-column BED (modkit --include-bed requires BED3 or BED6)."""
     output = Path(path)
