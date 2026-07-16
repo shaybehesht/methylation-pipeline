@@ -45,6 +45,16 @@ are fully offline as long as the cache is persisted.
 - **BAM index detection.** The app looks for `<file>.bam.bai` or `<file>.bai`
   (also `.csi`) beside each BAM and explains how to create a missing index with
   `samtools index`.
+- **Remote data over SSH (optional).** The "Remote data" page mounts a folder
+  from an SSH server (with an optional `login1` → `analysis1` jump handled by
+  `ProxyJump`) using **SSHFS**, so remote BAMs can be browsed and analyzed by
+  path without a full download. The app never sees or stores your password: it
+  prints the exact `sshfs` command for you to run in your own terminal, where
+  your password and 2FA (Duo) prompts stay between you and the server, then
+  registers the mount as a browsable location. Each person uses their own
+  account. Targeted gene-panel runs are efficient over the mount; genome-wide
+  runs stream most of each BAM and are better run on the server itself. Requires
+  SSHFS (macOS: macFUSE or FUSE-T + `sshfs`; Linux: `sshfs`).
 - **Managed reference assemblies.** Pick hg38 or hg19; the FASTA, GENCODE GTF,
   and UCSC CpG islands are streamed once, written atomically, decompressed,
   FASTA-indexed with pysam, and cached under `METHYL_TRIO_REFERENCE_CACHE`

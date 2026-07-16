@@ -83,6 +83,21 @@ def test_data_roots_accepts_multiple_locations(monkeypatch, tmp_path: Path):
     assert data_roots() == [first.resolve(), second.resolve()]
 
 
+def test_register_data_root_is_included_when_it_exists(monkeypatch, tmp_path: Path):
+    monkeypatch.setattr(file_picker, "_EXTERNAL_MOUNT_PARENTS", ())
+    monkeypatch.setenv("METHYL_TRIO_DATA_ROOT", str(tmp_path / "local"))
+    (tmp_path / "local").mkdir()
+    remote_mount = tmp_path / "remote-mount"
+    remote_mount.mkdir()
+    # Simulate a registered mount without a Streamlit context by patching the reader.
+    monkeypatch.setattr(file_picker, "_session_roots", lambda: [remote_mount.resolve()])
+    assert remote_mount.resolve() in data_roots()
+
+    missing = tmp_path / "not-there"
+    monkeypatch.setattr(file_picker, "_session_roots", lambda: [missing.resolve()])
+    assert missing.resolve() not in data_roots()
+
+
 def test_data_roots_auto_detect_external_drives(monkeypatch, tmp_path: Path):
     mount_parent = tmp_path / "Volumes"
     (mount_parent / "MyDrive").mkdir(parents=True)

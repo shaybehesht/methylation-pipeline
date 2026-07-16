@@ -7,6 +7,23 @@ from streamlit.testing.v1 import AppTest
 
 SETUP_PAGE = str(Path(__file__).resolve().parents[1] / "app" / "pages" / "1_Setup.py")
 RESULTS_PAGE = str(Path(__file__).resolve().parents[1] / "app" / "pages" / "5_Results.py")
+REMOTE_PAGE = str(Path(__file__).resolve().parents[1] / "app" / "pages" / "0_Remote_Data.py")
+
+
+def test_remote_page_renders_and_generates_command(monkeypatch, tmp_path: Path):
+    monkeypatch.setenv("METHYL_TRIO_DATA_ROOT", str(tmp_path))
+    monkeypatch.setenv("METHYL_TRIO_REFERENCE_CACHE", str(tmp_path / "cache"))
+    app = AppTest.from_file(REMOTE_PAGE)
+    app.session_state["remote_user"] = "u244415"
+    app.session_state["remote_analysis_host"] = "analysis1.hgsc.bcm.edu"
+    app.session_state["remote_path"] = "/data/bams"
+    app.session_state["remote_jump_host"] = "login1.hgsc.bcm.edu"
+    app.session_state["remote_mount_point"] = str(tmp_path / "mnt")
+    app.run(timeout=30)
+    assert not app.exception
+    code_blocks = " ".join(block.value for block in app.code)
+    assert "sshfs" in code_blocks
+    assert "ProxyJump=u244415@login1.hgsc.bcm.edu" in code_blocks
 
 
 def test_setup_page_renders_with_local_root(monkeypatch, tmp_path: Path):

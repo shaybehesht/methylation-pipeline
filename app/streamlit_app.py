@@ -18,6 +18,7 @@ st.info(
 )
 st.subheader("Workflow")
 st.markdown(
+    "0. **Remote data** *(optional)* — mount BAMs from an SSH server to browse them by path.\n"
     "1. **Setup** — browse local BAMs, roles, sexes, and a managed reference assembly; run QC.\n"
     "2. **Regions** — choose whole genome, chromosomes, or target genes.\n"
     "3. **Thresholds** — review and edit every analysis cutoff.\n"

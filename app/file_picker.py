@@ -74,7 +74,34 @@ def data_roots() -> list[Path]:
         for mount in _external_mount_roots():
             if mount not in roots:
                 roots.append(mount)
+    for extra in _session_roots():
+        if extra not in roots and extra.exists():
+            roots.append(extra)
     return roots or [_resolve(Path.home())]
+
+
+_EXTRA_ROOTS_KEY = "methyl_trio_extra_roots"
+
+
+def _session_roots() -> list[Path]:
+    """Return roots registered at runtime (e.g. mounted remote data)."""
+    try:
+        registered = st.session_state.get(_EXTRA_ROOTS_KEY, [])
+    except Exception:
+        return []
+    return [_resolve(path) for path in registered]
+
+
+def register_data_root(path: str | Path) -> Path:
+    """Register an extra browsable root for this session (e.g. an SSHFS mount)."""
+    resolved = _resolve(path)
+    try:
+        registered = st.session_state.setdefault(_EXTRA_ROOTS_KEY, [])
+        if str(resolved) not in registered:
+            registered.append(str(resolved))
+    except Exception:
+        pass
+    return resolved
 
 
 def data_root() -> Path:
