@@ -64,6 +64,34 @@ def test_detect_bam_index_variants(tmp_path: Path):
     assert detect_bam_index(missing) is None
 
 
+PICKER_PROBE = """
+import streamlit as st
+from app.file_picker import file_browser
+selected = file_browser("BAM", key="p", extensions=(".bam",))
+st.write(f"RESULT={selected}")
+"""
+
+
+def test_go_to_path_jumps_into_deep_folder(monkeypatch, tmp_path: Path):
+    from streamlit.testing.v1 import AppTest
+
+    monkeypatch.setattr(file_picker, "_EXTERNAL_MOUNT_PARENTS", ())
+    root = tmp_path / "data"
+    deep = root / "ONT_trio_analysis" / "2025-12-01T122543_TrioAnalysis_BH16732"
+    deep.mkdir(parents=True)
+    (deep / "proband.bam").write_bytes(b"")
+    monkeypatch.setenv("METHYL_TRIO_DATA_ROOT", str(root))
+
+    app = AppTest.from_string(PICKER_PROBE).run(timeout=30)
+    assert not app.exception
+    app.text_input(key="picker_path::p").set_value(str(deep)).run(timeout=30)
+    files = app.selectbox(key="picker_file::p")
+    assert "proband.bam" in files.options
+    files.set_value("proband.bam").run(timeout=30)
+    results = [block.value for block in app.markdown if "RESULT=" in block.value]
+    assert any(str(deep / "proband.bam") in value for value in results)
+
+
 def test_data_root_uses_env(monkeypatch, tmp_path: Path):
     monkeypatch.setattr(file_picker, "_EXTERNAL_MOUNT_PARENTS", ())
     monkeypatch.setenv("METHYL_TRIO_DATA_ROOT", str(tmp_path))
@@ -81,6 +109,22 @@ def test_data_roots_accepts_multiple_locations(monkeypatch, tmp_path: Path):
     second.mkdir()
     monkeypatch.setenv("METHYL_TRIO_DATA_ROOT", os.pathsep.join([str(first), str(second)]))
     assert data_roots() == [first.resolve(), second.resolve()]
+
+
+def test_translate_remote_path_maps_server_path_to_mount(monkeypatch, tmp_path: Path):
+    mount = tmp_path / "mnt"
+    mapping = {"/stornext/snfs190/next-gen/ONT_trio_analysis": str(mount)}
+    monkeypatch.setattr(file_picker, "_REMOTE_MAP_KEY", "k")
+    monkeypatch.setattr(
+        file_picker.st, "session_state", {"k": mapping}, raising=False
+    )
+    server_path = "/stornext/snfs190/next-gen/ONT_trio_analysis/2025-12-01T122543_TrioAnalysis_BH16732"
+    translated = file_picker.translate_remote_path(server_path)
+    assert translated == str(mount / "2025-12-01T122543_TrioAnalysis_BH16732")
+    # exact base maps to the mount root
+    assert file_picker.translate_remote_path("/stornext/snfs190/next-gen/ONT_trio_analysis") == str(mount)
+    # unrelated path is returned unchanged
+    assert file_picker.translate_remote_path("/elsewhere/x.bam") == "/elsewhere/x.bam"
 
 
 def test_register_data_root_is_included_when_it_exists(monkeypatch, tmp_path: Path):

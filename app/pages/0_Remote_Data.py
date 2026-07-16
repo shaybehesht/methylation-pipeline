@@ -3,7 +3,7 @@ from pathlib import Path
 import streamlit as st
 
 from app import remote
-from app.file_picker import data_roots, register_data_root
+from app.file_picker import data_roots, register_data_root, register_remote_mapping
 from app.state import initialize
 
 initialize()
@@ -85,12 +85,15 @@ if ready:
     if st.button("Check mount and use it", type="primary"):
         if remote.is_mounted(mount_point):
             register_data_root(mount_point)
+            register_remote_mapping(remote_path, mount_point)
             st.success(
                 f"Mounted. '{mount_point}' is now a browsable location in Setup's "
-                "file pickers."
+                "file pickers. You can paste server paths under "
+                f"'{remote_path}' straight into the picker's 'Go to path' box."
             )
         elif Path(mount_point).is_dir() and any(Path(mount_point).iterdir()):
             register_data_root(mount_point)
+            register_remote_mapping(remote_path, mount_point)
             st.warning(
                 "That folder is not detected as a live mount, but it has files, so "
                 "it was added anyway. If browsing fails, re-run the mount command."
@@ -120,6 +123,7 @@ if ready:
                 ok, output = remote.attempt_mount(batch_command, mount_point)
                 if ok:
                     register_data_root(mount_point)
+                    register_remote_mapping(remote_path, mount_point)
                     st.success(f"Mounted and registered '{mount_point}'.")
                 else:
                     st.error("Could not mount without a password. Use the terminal command above.")

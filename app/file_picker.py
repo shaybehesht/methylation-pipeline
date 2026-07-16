@@ -104,6 +104,40 @@ def register_data_root(path: str | Path) -> Path:
     return resolved
 
 
+_REMOTE_MAP_KEY = "methyl_trio_remote_map"
+
+
+def register_remote_mapping(remote_base: str, mount_point: str | Path) -> None:
+    """Record that ``remote_base`` on the server is mounted at ``mount_point``.
+
+    This lets the picker translate a server absolute path (e.g. a
+    ``/stornext/...`` path pasted from the cluster) into the corresponding local
+    mount path.
+    """
+    try:
+        mapping = st.session_state.setdefault(_REMOTE_MAP_KEY, {})
+        mapping[str(remote_base).rstrip("/") or "/"] = str(_resolve(mount_point))
+    except Exception:
+        pass
+
+
+def translate_remote_path(path_str: str) -> str:
+    """Map a server absolute path onto its local mount path when one is known."""
+    try:
+        mapping = dict(st.session_state.get(_REMOTE_MAP_KEY, {}))
+    except Exception:
+        mapping = {}
+    text = path_str.rstrip("/") or path_str
+    for base in sorted(mapping, key=len, reverse=True):
+        mount = mapping[base]
+        if text == base:
+            return mount
+        if text.startswith(base.rstrip("/") + "/"):
+            relative = text[len(base.rstrip("/")):].lstrip("/")
+            return str(Path(mount) / relative)
+    return path_str
+
+
 def data_root() -> Path:
     """Return the primary browse root (the first configured data root)."""
 
@@ -237,10 +271,36 @@ def file_browser(
     nav_widget_key = f"picker_nav::{key}"
     file_widget_key = f"picker_file::{key}"
     root_widget_key = f"picker_root::{key}"
+    path_widget_key = f"picker_path::{key}"
+    filter_widget_key = f"picker_filter::{key}"
+    path_error_key = f"picker_path_error::{key}"
 
     st.markdown(f"**{label}**")
     if help:
         st.caption(help)
+
+    def _go_to_path() -> None:
+        raw = str(st.session_state.get(path_widget_key, "")).strip()
+        st.session_state.pop(path_error_key, None)
+        if not raw:
+            return
+        target = translate_remote_path(raw)
+        for candidate_root in root_list:
+            resolved = resolve_within(candidate_root, target)
+            if resolved is None:
+                continue
+            st.session_state[root_widget_key] = str(candidate_root)
+            if resolved.is_dir():
+                st.session_state[dir_state_key] = str(resolved)
+            elif resolved.is_file():
+                st.session_state[dir_state_key] = str(resolved.parent)
+                st.session_state[selection_key] = str(resolved)
+            else:
+                continue
+            st.session_state[nav_widget_key] = "—"
+            st.session_state.pop(file_widget_key, None)
+            return
+        st.session_state[path_error_key] = raw
 
     if len(root_list) > 1:
         root_options = [str(root) for root in root_list]
@@ -260,6 +320,18 @@ def file_browser(
     else:
         browse_root = root_list[0]
 
+    st.text_input(
+        "Go to path", key=path_widget_key, on_change=_go_to_path,
+        placeholder="paste a folder or .bam path, e.g. /stornext/.../TrioAnalysis_BH16732",
+        help="Paste an absolute path (a server path is translated to its mount "
+        "automatically) to jump straight to that folder or file.",
+    )
+    if st.session_state.get(path_error_key):
+        st.error(
+            f"'{st.session_state[path_error_key]}' is not inside a browsable "
+            "location. Mount it on the Remote data page, or check the path."
+        )
+
     if dir_state_key not in st.session_state:
         st.session_state[dir_state_key] = str(browse_root)
 
@@ -268,6 +340,13 @@ def file_browser(
     st.caption(f"Browsing: {_display_path(browse_root, current)}")
 
     subdirs, files = list_entries(current, extensions)
+    query = st.text_input(
+        "Filter", key=filter_widget_key, placeholder="type to narrow this folder",
+        help="Case-insensitive substring filter for the folders and files below.",
+    ).strip().lower()
+    if query:
+        subdirs = [entry for entry in subdirs if query in entry.name.lower()]
+        files = [entry for entry in files if query in entry.name.lower()]
 
     def _navigate() -> None:
         choice = st.session_state.get(nav_widget_key, "—")
@@ -289,22 +368,28 @@ def file_browser(
         if chosen is not None and chosen.is_file():
             st.session_state[selection_key] = str(chosen)
 
+    cap = 1000
+    truncated = len(subdirs) > cap or len(files) > cap
     nav_options = ["—"]
     if current != browse_root:
         nav_options.append("..")
-    nav_options.extend(entry.name for entry in subdirs)
+    nav_options.extend(entry.name for entry in subdirs[:cap])
     st.selectbox(
         "Open folder", nav_options, key=nav_widget_key, on_change=_navigate,
         help="Navigate within the data root. Selecting a folder opens it.",
     )
 
-    file_options = ["—"] + [entry.name for entry in files]
+    file_options = ["—"] + [entry.name for entry in files[:cap]]
     if len(file_options) > 1:
         st.selectbox(
             "Select file", file_options, key=file_widget_key, on_change=_select,
         )
     else:
         st.caption("No matching files in this folder.")
+    if truncated:
+        st.caption(
+            f"Showing the first {cap} entries — use the filter above to narrow this folder."
+        )
 
     selected = st.session_state.get(selection_key, "")
     if selected:

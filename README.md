@@ -33,8 +33,10 @@ are fully offline as long as the cache is persisted.
 
 - **Local file browser.** Setup selects each modBAM and the optional phased VCF
   from a rooted browser anchored at `METHYL_TRIO_DATA_ROOT` (`/data` under
-  Docker, the user home directory natively). Nothing is uploaded through the
-  browser and paths are never typed. Navigation cannot escape a data root.
+  Docker, the user home directory natively). Click through folders, **paste a
+  path into "Go to path"** to jump straight to a deep folder or file (server
+  paths under a mount are translated automatically), and use the **filter** box
+  to narrow large folders. Navigation cannot escape a data root.
 - **External drives.** `METHYL_TRIO_DATA_ROOT` accepts several locations
   separated by the OS path separator (`:` on macOS/Linux, `;` on Windows), and a
   "Location" selector switches between them. When the variable is unset, the
