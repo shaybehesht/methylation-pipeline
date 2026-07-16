@@ -65,3 +65,29 @@ def test_build_view_command_quotes_spaces():
     )
     assert "'/a b/proband.bam'" in cmd
     assert "'/opt/s t/samtools'" in cmd
+
+
+def test_build_pysam_slice_command():
+    cmd = bcm.build_pysam_slice_command(
+        "python3", "/home/u/.methyl_trio/remote_slice.py",
+        "/stornext/x/proband.bam", ["chr3:101-200", "chrX:1-50"],
+    )
+    assert cmd.startswith("python3 ")
+    assert "/home/u/.methyl_trio/remote_slice.py" in cmd
+    assert "/stornext/x/proband.bam" in cmd
+    assert "chr3:101-200" in cmd and "chrX:1-50" in cmd
+    assert ">" not in cmd  # streams to stdout, no server-side write
+
+
+def test_build_pysam_slice_command_requires_regions():
+    import pytest
+
+    with pytest.raises(ValueError):
+        bcm.build_pysam_slice_command("python3", "/s.py", "/x.bam", [])
+
+
+def test_slice_script_is_valid_python():
+    import ast
+
+    ast.parse(bcm.SLICE_SCRIPT)
+    assert "pysam" in bcm.SLICE_SCRIPT

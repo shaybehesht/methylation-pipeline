@@ -149,11 +149,30 @@ with tab_login:
         st.divider()
         st.subheader("Fetch a region slice (no server writes, tiny download)")
         st.caption(
-            "Reads only the regions you name from a remote BAM (via read-only "
-            "`samtools view` on the server) and streams them to a small local BAM "
-            "that is indexed and made browsable. Ideal for a targeted gene panel "
-            "when you cannot write on the server."
+            "Reads only the regions you name from a remote BAM and streams them to "
+            "a small local BAM that is indexed and made browsable — ideal for a "
+            "targeted gene panel. The analysis host has no samtools, so a tiny "
+            "pysam helper runs in your home directory instead (one-time setup)."
         )
+        server_python = st.text_input(
+            "Server python", st.session_state.get("bcm_python", "python3"),
+            help="Interpreter used for the pysam slicer on the server.",
+        )
+        st.session_state.bcm_python = server_python
+        if st.button("Set up remote slicer (one-time)"):
+            with st.spinner("Uploading slicer and checking pysam on the server…"):
+                try:
+                    ready, report = bcm.ensure_remote_slicer(
+                        user, pw, python=server_python,
+                        gateway_host=gateway_host, target_host=target_host,
+                    )
+                    st.session_state.bcm_slicer_ready = ready
+                    (st.success if ready else st.error)(
+                        "Remote slicer ready." if ready else "Slicer setup incomplete."
+                    )
+                    st.code(report)
+                except Exception as exc:  # noqa: BLE001
+                    st.error(f"Setup failed: {exc}")
         slice_bam_path = st.text_input(
             "Remote BAM path", st.session_state.get("bcm_slice_bam", ""),
             placeholder="/stornext/.../TrioAnalysis_BH16732/proband.bam",
@@ -168,29 +187,8 @@ with tab_login:
             "…or explicit regions", "",
             placeholder="chr3:57192837-57232606 chrX:150000-160000",
         )
-        with st.expander("Advanced: samtools location / module"):
-            samtools_exe = st.text_input(
-                "samtools on server", st.session_state.get("bcm_samtools", "samtools"),
-                help="A full path also works, e.g. /opt/conda/envs/bio/bin/samtools.",
-            )
-            st.session_state.bcm_samtools = samtools_exe
-            setup_cmd = st.text_input(
-                "Server setup command (optional)", st.session_state.get("bcm_setup", ""),
-                placeholder="module load samtools    (or: source ~/.bashrc)",
-                help="Runs before samtools. Needed when samtools lives behind a module "
-                "or conda env. Everything runs in a login shell so your profile loads.",
-            )
-            st.session_state.bcm_setup = setup_cmd
-            find_cols = st.columns(2)
-            if find_cols[0].button("Find samtools on server"):
-                try:
-                    st.code(bcm.locate_tool(
-                        user, pw, samtools_exe.split("/")[-1] or "samtools",
-                        gateway_host=gateway_host, target_host=target_host,
-                    ))
-                except Exception as exc:  # noqa: BLE001
-                    st.error(f"Lookup failed: {exc}")
-            if find_cols[1].button("Diagnose server (tools + write access)"):
+        with st.expander("Advanced: diagnose server"):
+            if st.button("Diagnose server (tools + write access)"):
                 try:
                     st.code(bcm.diagnose_server(
                         user, pw, gateway_host=gateway_host, target_host=target_host,
@@ -214,9 +212,9 @@ with tab_login:
                 out_dir = Path(st.session_state.get("bcm_download_dir", str(Path.home() / "methyl-trio-downloads")))
                 local_bam = out_dir / (Path(slice_bam_path).stem + ".slice.bam")
                 with st.spinner("Streaming region slice from the server…"):
-                    bcm.slice_bam(
+                    bcm.slice_bam_pysam(
                         user, pw, slice_bam_path, regions, str(local_bam),
-                        samtools=samtools_exe, setup=st.session_state.get("bcm_setup", ""),
+                        python=st.session_state.get("bcm_python", "python3"),
                         gateway_host=gateway_host, target_host=target_host,
                     )
                 register_data_root(str(out_dir))
