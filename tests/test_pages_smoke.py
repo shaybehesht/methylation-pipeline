@@ -26,6 +26,17 @@ def test_remote_page_renders_and_generates_command(monkeypatch, tmp_path: Path):
     assert "ProxyJump=u244415@login1.hgsc.bcm.edu" in code_blocks
 
 
+def test_remote_page_shows_bcm_login(monkeypatch, tmp_path: Path):
+    monkeypatch.setenv("METHYL_TRIO_DATA_ROOT", str(tmp_path))
+    monkeypatch.setenv("METHYL_TRIO_REFERENCE_CACHE", str(tmp_path / "cache"))
+    app = AppTest.from_file(REMOTE_PAGE).run(timeout=30)
+    assert not app.exception
+    # The in-app BCM login exposes username/password inputs.
+    inputs = [inp.label.lower() for inp in app.text_input]
+    assert any("username" in label for label in inputs)
+    assert any("password" in label for label in inputs)
+
+
 def test_setup_page_renders_with_local_root(monkeypatch, tmp_path: Path):
     data_root = tmp_path / "data"
     (data_root / "cohort").mkdir(parents=True)
