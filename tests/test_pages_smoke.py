@@ -8,6 +8,19 @@ from streamlit.testing.v1 import AppTest
 SETUP_PAGE = str(Path(__file__).resolve().parents[1] / "app" / "pages" / "1_Setup.py")
 RESULTS_PAGE = str(Path(__file__).resolve().parents[1] / "app" / "pages" / "5_Results.py")
 REMOTE_PAGE = str(Path(__file__).resolve().parents[1] / "app" / "pages" / "0_Remote_Data.py")
+LANDING_PAGE = str(Path(__file__).resolve().parents[1] / "app" / "streamlit_app.py")
+
+
+def test_landing_page_shows_mango_branding(monkeypatch, tmp_path: Path):
+    monkeypatch.setenv("METHYL_TRIO_DATA_ROOT", str(tmp_path))
+    monkeypatch.setenv("METHYL_TRIO_REFERENCE_CACHE", str(tmp_path / "cache"))
+    app = AppTest.from_file(LANDING_PAGE).run(timeout=30)
+    assert not app.exception
+    text = " ".join(block.value for block in app.title) + " ".join(
+        block.value for block in app.caption
+    )
+    assert "MANGO" in text
+    assert "Methylation Analysis for Novel Genomic Outcomes" in text
 
 
 def test_remote_page_renders_and_generates_command(monkeypatch, tmp_path: Path):

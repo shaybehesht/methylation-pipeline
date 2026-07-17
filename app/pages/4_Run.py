@@ -9,7 +9,7 @@ from app.state import config, initialize
 from core.pipeline import run
 
 initialize()
-st.title("4. Run")
+st.title("🥭 4. Run")
 
 st.subheader("Where to save this run")
 run_name = st.text_input(

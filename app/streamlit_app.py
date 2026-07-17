@@ -1,12 +1,28 @@
-"""Methylation Trio Platform entry point."""
+"""MANGO — Methylation Analysis for Novel Genomic Outcomes: entry point."""
 import streamlit as st
 
 from app.state import initialize
 
-st.set_page_config(page_title="Methylation Trio", page_icon="🧬", layout="wide")
+st.set_page_config(page_title="MANGO", page_icon="🥭", layout="wide")
 initialize()
 
-st.title("Methylation Trio Platform")
+st.markdown(
+    """
+    <style>
+    .mango-bar {
+        height: 8px;
+        background: linear-gradient(90deg, #FFD23F 0%, #F5A623 45%, #E8590C 100%);
+        border-radius: 4px;
+        margin-bottom: 0.75rem;
+    }
+    </style>
+    <div class="mango-bar"></div>
+    """,
+    unsafe_allow_html=True,
+)
+
+st.title("🥭 MANGO")
+st.caption("Methylation Analysis for Novel Genomic Outcomes")
 st.write(
     "Offline, configurable three-sample nanopore methylation analysis. "
     "Use the pages in the sidebar to validate inputs, define the region scope, "

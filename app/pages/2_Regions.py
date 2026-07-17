@@ -3,7 +3,7 @@ import streamlit as st
 from app.state import initialize
 
 initialize()
-st.title("2. Regions")
+st.title("🥭 2. Regions")
 labels = {
     "whole_genome": "Whole genome",
     "chromosomes": "Selected chromosomes",

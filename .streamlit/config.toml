@@ -1,0 +1,8 @@
+# MANGO — Methylation Analysis for Novel Genomic Outcomes
+# Mango-shaded theme applied app-wide to every page.
+[theme]
+primaryColor = "#F5A623"
+backgroundColor = "#FFFDF6"
+secondaryBackgroundColor = "#FFEFC9"
+textColor = "#3D2B1F"
+font = "sans serif"

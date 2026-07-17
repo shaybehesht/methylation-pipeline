@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "methyl-trio"
 version = "0.1.0"
-description = "Offline three-sample nanopore methylation DMR analysis"
+description = "MANGO — Methylation Analysis for Novel Genomic Outcomes: offline three-sample nanopore methylation DMR analysis"
 requires-python = ">=3.11"
 dependencies = [
   "jinja2>=3.1",

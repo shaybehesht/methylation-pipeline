@@ -393,8 +393,8 @@ def run(
     all_figures = list(outcome.get("figures", [])) + [figure]
     all_figures = [fig for fig in all_figures if fig is not None]
     report = write_html_report(
-        output / "report.html", "Methylation Trio Report", summary, reasoning, candidates,
-        figures=all_figures,
+        output / "report.html", "MANGO — Methylation Analysis for Novel Genomic Outcomes",
+        summary, reasoning, candidates, figures=all_figures,
     )
     result = {
         **summary, "null_cutoff": cutoff, "reasoning": reasoning,

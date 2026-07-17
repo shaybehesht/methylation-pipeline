@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One-shot setup for the Methylation Trio Platform.
+# One-shot setup for MANGO (Methylation Analysis for Novel Genomic Outcomes).
 #
 #   bash setup.sh            # create/update the conda env and install the app
 #

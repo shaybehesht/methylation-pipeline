@@ -1,10 +1,10 @@
-# Methylation Trio Platform
+# 🥭 MANGO — Methylation Analysis for Novel Genomic Outcomes
 
-Offline Streamlit application for exploratory nanopore methylation DMR analysis
-of one proband and two relatives. Roles, sexes, region scope, and every analysis
-threshold are configurable. Local modBAMs are selected through a server-side
-file browser, and reference assemblies are downloaded once and cached for
-offline reuse.
+MANGO (Methylation Analysis for Novel Genomic Outcomes) is an offline Streamlit
+application for exploratory nanopore methylation DMR analysis of one proband and
+two relatives. Roles, sexes, region scope, and every analysis threshold are
+configurable. Local modBAMs are selected through a server-side file browser, and
+reference assemblies are downloaded once and cached for offline reuse.
 
 ## Start with Docker
 

@@ -21,7 +21,7 @@ from core.references import (
 )
 
 initialize()
-st.title("1. Setup")
+st.title("🥭 1. Setup")
 _roots = data_roots()
 st.caption(
     "Select local files by browsing these locations: "

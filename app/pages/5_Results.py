@@ -34,7 +34,7 @@ def _run_pileups(run_dir: Path) -> tuple[dict, list]:
     return pileups, [label for label in labels if label in pileups]
 
 initialize()
-st.title("5. Results")
+st.title("🥭 5. Results")
 result = st.session_state.get("last_result")
 if result is None:
     summary_path = Path(st.session_state.get("output_dir", "runs/latest")) / "summary.json"

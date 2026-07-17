@@ -8,7 +8,7 @@ from app.state import initialize
 from core.annotations import extract_to_regions, panel_regions
 
 initialize()
-st.title("0. Remote data (BCM / SSH)")
+st.title("🥭 0. Remote data (BCM / SSH)")
 st.caption(
     "Connect to a remote server, browse BAMs by path, and either download the "
     "ones you need or mount the folder for in-place analysis."

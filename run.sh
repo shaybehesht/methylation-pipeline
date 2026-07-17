@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Launch the Methylation Trio Streamlit app from anywhere.
+# Launch the MANGO (Methylation Analysis for Novel Genomic Outcomes) app from anywhere.
 #   ./run.sh                 # defaults
 #   ./run.sh --server.port 8502
 set -euo pipefail
