@@ -29,6 +29,57 @@ cache so the image stays small and both assemblies are not duplicated. Only the
 one-time reference preparation needs internet access — subsequent analysis runs
 are fully offline as long as the cache is persisted.
 
+## Install and share with colleagues
+
+The app needs Python packages **and** external binaries (`modkit`,
+`samtools`/`htslib`). Two supported ways to distribute it:
+
+### Option A — conda environment (recommended, incl. Apple Silicon)
+
+Colleagues install [Miniforge](https://github.com/conda-forge/miniforge) once,
+then, from a clone of this repo:
+
+```bash
+bash setup.sh                 # creates the "methyl-trio-ui" env + installs everything
+conda activate methyl-trio-ui
+methyl-trio                   # launches the app at http://localhost:8501
+```
+
+`setup.sh` builds the env from `environment.yml` (which pulls `ont-modkit`,
+`samtools`, `htslib`, and — via `pip install -e .` — Streamlit, pysam, pandas,
+scipy, matplotlib, plotly, and paramiko) and registers the `methyl-trio`
+command. Equivalent manual steps:
+
+```bash
+conda env create -n methyl-trio-ui -f environment.yml
+conda activate methyl-trio-ui
+pip install -e .
+methyl-trio
+```
+
+### Option B — Docker (zero local setup)
+
+Colleagues with Docker need nothing else; the image bundles all tools:
+
+```bash
+export METHYL_TRIO_DATA=/absolute/path/to/data
+docker compose up --build
+```
+
+### What each colleague does
+
+1. Get the code: `git clone <repo-url>` (and `git checkout <branch>` if this is
+   still on a feature branch).
+2. Install with Option A or B above.
+3. Launch and open <http://localhost:8501>.
+4. In **Setup**, choose hg38/hg19 and click **Download and prepare** once (a
+   one-time internet download, cached afterwards for offline use).
+5. Select local BAMs (or connect to BCM on the **Remote data** page — each
+   person logs in with their **own** credentials, which are never stored).
+
+No shared secrets are required: references download per-machine into
+`METHYL_TRIO_REFERENCE_CACHE`, and remote access uses each user's own login.
+
 ## Local inputs and references
 
 - **Local file browser.** Setup selects each modBAM and the optional phased VCF
