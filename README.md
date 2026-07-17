@@ -91,7 +91,10 @@ are fully offline as long as the cache is persisted.
    private-DMR count vs effect size, with the sibling as the symmetric control),
    a karyotype-style DMR map with gene/imprinted labels, and an effect histogram
    against the family null (scripts 05/11). All figures are written to
-   `<run>/figures/` and embedded in `report.html`.
+   `<run>/figures/` and embedded in `report.html`. Results also includes an
+   **interactive, zoomable** sliding-window methylation profile (Plotly): pick a
+   gene/DMR or type `chrom:start-end`, drag to zoom, and pan with the range-slider
+   overview track.
 
 ## Analysis methodology
 

@@ -13,6 +13,7 @@ dependencies = [
   "numpy>=2.0",
   "pandas>=2.2",
   "paramiko>=3.4",
+  "plotly>=5.20",
   "pysam>=0.22",
   "scipy>=1.14",
   "streamlit>=1.37",
