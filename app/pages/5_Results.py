@@ -45,9 +45,27 @@ if result.get("evidence_status"):
     )
 
 output = Path(result["output"])
+
+figdir = output / "figures"
+gene_plots = sorted(figdir.glob("gene_*.png")) if figdir.exists() else []
+overview_plots = []
+if figdir.exists():
+    for pattern in ("targeted_heatmap_*.png", "wgs_karyotype.png", "effect_histogram.png"):
+        overview_plots.extend(sorted(figdir.glob(pattern)))
+
+if gene_plots or overview_plots:
+    st.subheader("Figures")
+if gene_plots:
+    names = [p.stem.replace("gene_", "") for p in gene_plots]
+    chosen = st.selectbox("Per-gene methylation plot", names)
+    st.image(str(figdir / f"gene_{chosen}.png"), use_container_width=True)
+for plot in overview_plots:
+    st.image(str(plot), caption=plot.stem.replace("_", " "), use_container_width=True)
+
 figure = output / "dmr_effects.png"
 if figure.exists():
-    st.image(str(figure))
+    with st.expander("Summary effect scatter"):
+        st.image(str(figure))
 table_path = output / "proband_specific_DMRs.tsv"
 if table_path.exists():
     candidates = pd.read_csv(table_path, sep="\t")

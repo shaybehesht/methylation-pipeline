@@ -41,17 +41,26 @@ def write_html_report(
     reasoning: str,
     candidates: pd.DataFrame,
     figure: str | Path | None = None,
+    figures: list[str | Path] | None = None,
 ) -> Path:
-    image = ""
-    if figure and Path(figure).exists():
-        encoded = base64.b64encode(Path(figure).read_bytes()).decode()
-        image = f'<img alt="DMR effect plot" src="data:image/png;base64,{encoded}">'
+    sources = figures if figures is not None else ([figure] if figure else [])
+    images = []
+    for source in sources:
+        if source and Path(source).exists():
+            encoded = base64.b64encode(Path(source).read_bytes()).decode()
+            caption = html.escape(Path(source).stem.replace("_", " "))
+            images.append(
+                f'<figure><img alt="{caption}" src="data:image/png;base64,{encoded}">'
+                f'<figcaption>{caption}</figcaption></figure>'
+            )
+    image = "\n".join(images)
     table = candidates.to_html(index=False, border=0, escape=True)
     document = f"""<!doctype html>
 <html><head><meta charset="utf-8"><title>{html.escape(title)}</title>
 <style>body{{font:16px system-ui;max-width:1100px;margin:2rem auto;padding:0 1rem}}
 table{{border-collapse:collapse;width:100%}}th,td{{padding:.4rem;border-bottom:1px solid #ddd}}
-img{{max-width:100%}}.verdict{{font-size:1.5rem;font-weight:700}}</style></head>
+img{{max-width:100%}}.verdict{{font-size:1.5rem;font-weight:700}}
+figure{{margin:1.2rem 0}}figcaption{{color:#555;font-size:.9rem}}</style></head>
 <body><h1>{html.escape(title)}</h1><p class="verdict">{html.escape(str(summary["verdict"]))}</p>
 <p>{html.escape(reasoning)}</p>{image}<h2>Ranked candidates</h2>{table}</body></html>"""
     output = Path(path)

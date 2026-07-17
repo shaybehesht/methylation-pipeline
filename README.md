@@ -83,8 +83,13 @@ are fully offline as long as the cache is persisted.
 4. Run executes the analysis and lets you choose where results are saved
    (the project `./runs` folder or any browsable data root, including an
    external drive).
-5. Results provides a table, plot, verdict, caveats, self-contained HTML, and a
-   one-click complete-run ZIP archive.
+5. Results provides a table, verdict, caveats, self-contained HTML, a one-click
+   complete-run ZIP archive, and visualizations that mirror the reference
+   scripts: per-gene % CpG methylation + coverage plots with the promoter
+   highlighted and promoter/body heatmaps for targeted panels (script 07), and a
+   karyotype-style DMR map plus an effect histogram against the family null for
+   genome-wide runs (scripts 03/11). All figures are written to
+   `<run>/figures/` and embedded in `report.html`.
 
 ## Analysis methodology
 

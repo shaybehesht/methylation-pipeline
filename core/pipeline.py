@@ -170,9 +170,20 @@ def _run_segmentation(config: TrioConfig, output: Path, log, notify: Progress) -
         mb, cutoff, int(config.thresholds["min_sites"]), require_ci=True
     )
     denominator = max(len(null_variable), 1)
+
+    notify(0.95, "Rendering figures")
+    from core import figures
+
+    figdir = output / "figures"
+    figdir.mkdir(parents=True, exist_ok=True)
+    produced = [
+        figures.karyotype_plot(candidates, figdir / "wgs_karyotype.png", title="Proband-private DMRs"),
+        figures.effect_histogram(candidates, mb, figdir / "effect_histogram.png"),
+    ]
     return {
         "candidates": candidates, "cutoff": cutoff,
         "denominator": denominator, "denominator_label": "relative-null segments",
+        "figures": produced,
     }
 
 
@@ -228,10 +239,64 @@ def _run_targeted(config: TrioConfig, output: Path, gtf: str | None, log, notify
         candidates["effect_1"] = candidates["delta_p_r1"] / 100.0
         candidates["mean_abs_effect"] = candidates["min_abs_delta"] / 100.0
     denominator = max(int((scored["n_cpgs"] >= int(config.thresholds["min_sites"])).sum()), 1) if not scored.empty else 1
+
+    notify(0.9, "Rendering figures")
+    figure_paths = _targeted_figures(
+        output, named, scored, pileups, proband, relative_one, relative_two,
+        int(config.thresholds["min_valid_coverage"]),
+    )
     return {
         "candidates": candidates, "cutoff": float(config.thresholds["targeted_min_delta"]) / 100.0,
         "denominator": denominator, "denominator_label": "tested panel regions",
+        "figures": figure_paths,
     }
+
+
+def _targeted_figures(output, named, scored, pileups, proband, relative_one, relative_two, min_cov):
+    """Per-gene methylation plots and promoter/body heatmaps (mirrors script 07)."""
+    from core import figures
+
+    figdir = output / "figures"
+    figdir.mkdir(parents=True, exist_ok=True)
+    labels = [proband.label, relative_one.label, relative_two.label]
+    colors = {label: figures.ROLE_COLORS[index] for index, label in enumerate(labels)}
+    pileup_order = {label: pileups[label] for label in labels}
+    meth_columns = ["proband_meth", f"{relative_one.label}_meth", f"{relative_two.label}_meth"]
+
+    produced: list = []
+    if not scored.empty and all(column in scored.columns for column in meth_columns):
+        for kind in ("promoter", "body"):
+            path = figures.targeted_heatmap(
+                scored, kind, meth_columns, labels, figdir / f"targeted_heatmap_{kind}.png"
+            )
+            if path:
+                produced.append(path)
+
+    for gene, group in list(named.groupby("gene"))[:80]:
+        body = group[group["region"] == "body"]
+        promoter = group[group["region"] == "promoter"]
+        if body.empty:
+            continue
+        body_row = body.iloc[0]
+        promoter_row = promoter.iloc[0] if not promoter.empty else body_row
+        subtitle = ""
+        if not scored.empty:
+            match = scored[(scored["gene"] == gene) & (scored["region"] == "promoter")]
+            if not match.empty and pd.notna(match.iloc[0].get(meth_columns[0])):
+                row = match.iloc[0]
+                subtitle = "promoter " + "  ".join(
+                    f"{label[0].upper()} {row[column]:.0f}%"
+                    for label, column in zip(labels, meth_columns)
+                )
+        path = figures.gene_locus_plot(
+            gene, str(body_row["chrom"]), int(body_row["start"]), int(body_row["end"]),
+            (int(promoter_row["start"]), int(promoter_row["end"])),
+            pileup_order, figdir / f"gene_{gene}.png",
+            min_cov=min_cov, subtitle=subtitle, colors=colors,
+        )
+        if path:
+            produced.append(path)
+    return produced
 
 
 def run(
@@ -268,13 +333,17 @@ def run(
     })
     reasoning = explain(summary, cutoff, config.caveats())
     figure = effect_plot(candidates, output / "dmr_effects.png")
+    all_figures = list(outcome.get("figures", [])) + [figure]
+    all_figures = [fig for fig in all_figures if fig is not None]
     report = write_html_report(
-        output / "report.html", "Methylation Trio Report", summary, reasoning, candidates, figure
+        output / "report.html", "Methylation Trio Report", summary, reasoning, candidates,
+        figures=all_figures,
     )
     result = {
         **summary, "null_cutoff": cutoff, "reasoning": reasoning,
         "evidence_status": config.evidence_status(),
         "report": str(report), "output": str(output),
+        "figures": [str(fig) for fig in all_figures],
     }
     (output / "summary.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
     notify(1.0, "Analysis complete")
