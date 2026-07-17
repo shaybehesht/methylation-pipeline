@@ -78,3 +78,24 @@ def test_karyotype_handles_empty(tmp_path: Path):
     out = figures.karyotype_plot(pd.DataFrame(columns=["chrom", "start", "end", "mean_effect"]),
                                  tmp_path / "empty.png")
     assert out.exists()
+
+
+def test_karyotype_uses_gene_labels(tmp_path: Path):
+    candidates = pd.DataFrame([
+        {"chrom": "chr3", "start": 100, "end": 200, "mean_effect": 0.4,
+         "promoter_of": "HESX1", "genes": "HESX1,OTHER", "imprinted_control": ""},
+    ])
+    out = figures.karyotype_plot(candidates, tmp_path / "k.png")
+    assert out.exists()
+
+
+def test_sweep_plot(tmp_path: Path):
+    thresholds = [0.1, 0.2, 0.3, 0.4]
+    series = [
+        {"label": "P (proband)", "counts": [19, 16, 16, 10], "color": "#C0392B", "linestyle": "-"},
+        {"label": "B (sibling control)", "counts": [11, 11, 10, 6], "color": "#2471A3", "linestyle": "-"},
+        {"label": "M (parent)", "counts": [7, 7, 7, 6], "color": "#F39C12", "linestyle": "--"},
+    ]
+    out = figures.sweep_plot(thresholds, series, tmp_path / "sweep.png",
+                             ylabel="private DMRs (autosomes)", title="sweep")
+    assert out.exists() and out.stat().st_size > 0

@@ -79,7 +79,7 @@ def _merge_pileups(parts: list[Path], destination: Path) -> Path:
     return destination
 
 
-def _run_segmentation(config: TrioConfig, output: Path, log, notify: Progress) -> dict:
+def _run_segmentation(config: TrioConfig, output: Path, gtf: str | None, log, notify: Progress) -> dict:
     reference = config.reference_fasta
     comparisons = config.comparisons()
     samples = config.samples
@@ -173,11 +173,68 @@ def _run_segmentation(config: TrioConfig, output: Path, log, notify: Progress) -
 
     notify(0.95, "Rendering figures")
     from core import figures
+    from core.annotations import all_genes, annotate_with_genes
+    from core.config import Relationship
+    from core.segments import flip_segments, private_count
 
     figdir = output / "figures"
     figdir.mkdir(parents=True, exist_ok=True)
+
+    # Annotate candidate DMRs with overlapping genes for the karyotype labels.
+    if gtf and not candidates.empty:
+        try:
+            candidates = annotate_with_genes(candidates, all_genes(gtf))
+        except (OSError, ValueError):
+            pass
+
+    # Threshold sweep: each individual's private-DMR count vs |effect| (autosomes).
+    autosomes = set(AUTOSOMES)
+
+    def autosomal(frame: pd.DataFrame) -> pd.DataFrame:
+        return frame[frame["chrom"].isin(autosomes)] if not frame.empty else frame
+
+    proband, (relative_one, relative_two) = config.proband, config.relatives
+    pm_a, pb_a, mb_a = autosomal(pm), autosomal(pb), autosomal(mb)
+    focal = {
+        proband.label: (pm_a, pb_a, mb_a),
+        relative_one.label: (flip_segments(pm_a), mb_a, pb_a),
+        relative_two.label: (flip_segments(pb_a), flip_segments(mb_a), pm_a),
+    }
+    thresholds = [round(0.10 + 0.025 * step, 4) for step in range(24)]
+    min_sites = int(config.thresholds["min_sites"])
+    counts = {
+        label: [private_count(c1, c2, null, t, min_sites) for t in thresholds]
+        for label, (c1, c2, null) in focal.items()
+    }
+
+    def role_style(sample) -> tuple[str, str, str]:
+        if sample.role.value == "proband":
+            return figures.ROLE_COLORS[0], "-", f"{sample.label} (proband)"
+        if sample.relationship == Relationship.SIBLING:
+            return figures.ROLE_COLORS[2], "-", f"{sample.label} (sibling control)"
+        if sample.relationship in (Relationship.MOTHER, Relationship.FATHER):
+            return figures.ROLE_COLORS[1], "--", f"{sample.label} (parent)"
+        return "#7F8C8D", "--", sample.label
+
+    series = []
+    for sample in (proband, relative_one, relative_two):
+        color, linestyle, label = role_style(sample)
+        series.append({
+            "label": label, "counts": counts[sample.label], "color": color,
+            "linestyle": linestyle, "linewidth": 2.4 if linestyle == "-" else 1.4,
+            "alpha": 1.0 if linestyle == "-" else 0.6,
+        })
+
     produced = [
-        figures.karyotype_plot(candidates, figdir / "wgs_karyotype.png", title="Proband-private DMRs"),
+        figures.sweep_plot(
+            thresholds, series, figdir / "threshold_sweep.png",
+            ylabel="private DMRs (autosomes)",
+            title="Proband vs the family across effect thresholds",
+        ),
+        figures.karyotype_plot(
+            candidates, figdir / "wgs_karyotype.png",
+            title=f"Proband-private DMRs, |effect| >= {cutoff:.3g}",
+        ),
         figures.effect_histogram(candidates, mb, figdir / "effect_histogram.png"),
     ]
     return {
@@ -316,7 +373,7 @@ def run(
         if config.regions.mode == "targeted":
             outcome = _run_targeted(config, output, gtf, log, notify)
         else:
-            outcome = _run_segmentation(config, output, log, notify)
+            outcome = _run_segmentation(config, output, gtf, log, notify)
 
     candidates = outcome["candidates"]
     cutoff = outcome["cutoff"]

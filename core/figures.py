@@ -131,9 +131,32 @@ def targeted_heatmap(
     return Path(out_png)
 
 
+def sweep_plot(thresholds, series: list[dict], out_png: str | Path, *, ylabel: str, title: str) -> Path:
+    """Private-DMR counts vs |effect| threshold for the proband and relatives."""
+    fig, ax = plt.subplots(figsize=(7.5, 5.4))
+    for entry in series:
+        ax.plot(
+            thresholds, entry["counts"], marker="o", ms=4,
+            lw=entry.get("linewidth", 2.4), color=entry["color"],
+            linestyle=entry.get("linestyle", "-"), alpha=entry.get("alpha", 1.0),
+            label=entry["label"],
+        )
+    ax.set_xlabel("|effect size| threshold")
+    ax.set_ylabel(ylabel)
+    ax.set_title(title, fontsize=11)
+    ax.legend(frameon=False, fontsize=9)
+    for spine in ("top", "right"):
+        ax.spines[spine].set_visible(False)
+    fig.tight_layout()
+    fig.savefig(out_png, dpi=200)
+    plt.close(fig)
+    return Path(out_png)
+
+
 def karyotype_plot(
     candidates: pd.DataFrame, out_png: str | Path, *, title: str = "Proband-specific DMRs",
     effect_column: str = "mean_effect",
+    label_columns: tuple[str, ...] = ("promoter_of", "genes", "imprinted_control"),
 ) -> Path:
     """Karyotype-style lollipop plot of proband-private DMRs (scripts 03/11)."""
     from matplotlib.patches import Rectangle
@@ -157,7 +180,12 @@ def karyotype_plot(
             color = HYPER if effect > 0 else HYPO
             ax.plot([x, x], [y, y + sign * height], color=color, lw=1.2, alpha=0.9, zorder=3)
             ax.plot([x], [y + sign * height], "o", ms=3.4, color=color, zorder=4)
-            label = str(region.get("imprinted_control", "") or "")
+            label = ""
+            for column in label_columns:
+                value = str(region.get(column, "") or "")
+                if value:
+                    label = value.split(",")[0]
+                    break
             if label:
                 ax.annotate(
                     label, (x, y + sign * height), xytext=(0, 7 * sign),

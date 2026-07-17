@@ -105,6 +105,44 @@ def test_proband_private_end_to_end_flags_imprinted():
     assert "rank" in ranked.columns and "mean_effect" in ranked.columns
 
 
+def test_flip_segments_negates_effect_and_ci():
+    from core.segments import flip_segments
+
+    frame = pd.DataFrame([{
+        "chrom": "chr1", "start": 1, "end": 2, "state": "different", "num_sites": 8,
+        "effect": 0.4, "cohen_h": 0.5, "cohen_h_low": 0.3, "cohen_h_high": 0.7,
+        "a_frac_modified": 0.8, "b_frac_modified": 0.4, "ci_excludes_zero": True,
+    }])
+    flipped = flip_segments(frame)
+    assert flipped.loc[0, "effect"] == -0.4
+    assert flipped.loc[0, "cohen_h_low"] == -0.7
+    assert flipped.loc[0, "cohen_h_high"] == -0.3
+    assert flipped.loc[0, "a_frac_modified"] == 0.4
+    assert flipped.loc[0, "b_frac_modified"] == 0.8
+
+
+def test_private_count_matches_pipeline_logic():
+    from core.segments import private_count
+
+    pm = _frame([("chr1", 100, 200, "different", 8, 0.40)])
+    pb = _frame([("chr1", 120, 210, "different", 8, 0.38)])
+    mb = _frame([("chr2", 0, 10, "same", 8, 0.02)])
+    assert private_count(pm, pb, mb, 0.1, 5) == 1
+    assert private_count(pm, pb, mb, 0.5, 5) == 0  # threshold above the effects
+
+
+def test_annotate_with_genes_labels_regions():
+    from core.annotations import annotate_with_genes
+
+    genes = pd.DataFrame([
+        {"chrom": "chr3", "start": 100, "end": 5000, "tss": 100, "gene": "HESX1"},
+    ])
+    candidates = pd.DataFrame([{"chrom": "chr3", "start": 150, "end": 400}])
+    annotated = annotate_with_genes(candidates, genes)
+    assert annotated.loc[0, "genes"] == "HESX1"
+    assert annotated.loc[0, "promoter_of"] == "HESX1"
+
+
 def test_significant_requires_ci_when_asked():
     frame = _frame([("chr1", 0, 1, "different", 8, 0.5)])
     frame.loc[0, "ci_excludes_zero"] = False

@@ -50,7 +50,10 @@ figdir = output / "figures"
 gene_plots = sorted(figdir.glob("gene_*.png")) if figdir.exists() else []
 overview_plots = []
 if figdir.exists():
-    for pattern in ("targeted_heatmap_*.png", "wgs_karyotype.png", "effect_histogram.png"):
+    for pattern in (
+        "threshold_sweep.png", "wgs_karyotype.png", "effect_histogram.png",
+        "targeted_heatmap_*.png",
+    ):
         overview_plots.extend(sorted(figdir.glob(pattern)))
 
 if gene_plots or overview_plots:

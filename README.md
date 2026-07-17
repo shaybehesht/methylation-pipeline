@@ -86,9 +86,11 @@ are fully offline as long as the cache is persisted.
 5. Results provides a table, verdict, caveats, self-contained HTML, a one-click
    complete-run ZIP archive, and visualizations that mirror the reference
    scripts: per-gene % CpG methylation + coverage plots with the promoter
-   highlighted and promoter/body heatmaps for targeted panels (script 07), and a
-   karyotype-style DMR map plus an effect histogram against the family null for
-   genome-wide runs (scripts 03/11). All figures are written to
+   highlighted and promoter/body heatmaps for targeted panels (script 07); and
+   for genome-wide / per-chromosome runs a threshold sweep (each individual's
+   private-DMR count vs effect size, with the sibling as the symmetric control),
+   a karyotype-style DMR map with gene/imprinted labels, and an effect histogram
+   against the family null (scripts 05/11). All figures are written to
    `<run>/figures/` and embedded in `report.html`.
 
 ## Analysis methodology

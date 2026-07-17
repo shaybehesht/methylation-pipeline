@@ -29,6 +29,37 @@ IMPRINTED_GRCH38 = [
 ]
 
 
+def flip_segments(segments: pd.DataFrame) -> pd.DataFrame:
+    """Turn an 'A vs B' segment frame into 'B vs A' (negate effect and Cohen's h CI)."""
+    if segments.empty:
+        return segments.copy()
+    flipped = segments.copy()
+    flipped["effect"] = -flipped["effect"]
+    for column in ("cohen_h",):
+        if column in flipped.columns:
+            flipped[column] = -flipped[column]
+    if "cohen_h_low" in flipped.columns and "cohen_h_high" in flipped.columns:
+        low, high = flipped["cohen_h_low"].copy(), flipped["cohen_h_high"].copy()
+        flipped["cohen_h_low"], flipped["cohen_h_high"] = -high, -low
+    if "a_frac_modified" in flipped.columns and "b_frac_modified" in flipped.columns:
+        flipped[["a_frac_modified", "b_frac_modified"]] = flipped[
+            ["b_frac_modified", "a_frac_modified"]
+        ].to_numpy()
+    return flipped
+
+
+def private_count(
+    proband_one: pd.DataFrame, proband_two: pd.DataFrame, relative_null: pd.DataFrame,
+    effect: float, min_sites: int, require_ci: bool = True,
+) -> int:
+    """Count private DMRs at a fixed effect threshold (used by the sweep)."""
+    candidates = concordant_private(proband_one, proband_two, effect, min_sites, require_ci)
+    candidates = subtract_variable(
+        candidates, significant(relative_null, effect, min_sites, require_ci)
+    )
+    return len(candidates)
+
+
 def significant(segments: pd.DataFrame, effect: float, min_sites: int, require_ci: bool) -> pd.DataFrame:
     if segments.empty:
         return segments

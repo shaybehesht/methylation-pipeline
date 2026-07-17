@@ -45,6 +45,57 @@ def write_bed(frame: pd.DataFrame, path: str | Path) -> Path:
     return output
 
 
+def all_genes(gtf: str | Path) -> pd.DataFrame:
+    """Load every gene (chrom, start, end, tss, gene) from a GENCODE GTF."""
+    rows = []
+    opener = gzip.open if str(gtf).endswith(".gz") else open
+    with opener(gtf, "rt") as handle:
+        for line in handle:
+            if line.startswith("#"):
+                continue
+            fields = line.rstrip("\n").split("\t")
+            if len(fields) != 9 or fields[2] != "gene":
+                continue
+            match = GENE_NAME.search(fields[8])
+            if not match:
+                continue
+            start, end, strand = int(fields[3]) - 1, int(fields[4]), fields[6]
+            tss = start if strand == "+" else end
+            rows.append({"chrom": fields[0], "start": start, "end": end, "tss": tss, "gene": match.group(1)})
+    return pd.DataFrame(rows, columns=["chrom", "start", "end", "tss", "gene"])
+
+
+def annotate_with_genes(
+    candidates: pd.DataFrame, genes: pd.DataFrame, promoter_pad: int = 2000, limit: int = 6
+) -> pd.DataFrame:
+    """Add ``genes`` (overlapping) and ``promoter_of`` (TSS within pad) columns."""
+    result = candidates.copy()
+    if result.empty:
+        result["genes"] = pd.Series(dtype=str)
+        result["promoter_of"] = pd.Series(dtype=str)
+        return result
+    by_chrom = {chrom: group for chrom, group in genes.groupby("chrom")} if not genes.empty else {}
+    overlapping, promoters = [], []
+    for _, region in result.iterrows():
+        chrom_genes = by_chrom.get(region["chrom"])
+        if chrom_genes is None:
+            overlapping.append("")
+            promoters.append("")
+            continue
+        hit = chrom_genes[
+            (chrom_genes["start"] < region["end"]) & (chrom_genes["end"] > region["start"])
+        ]
+        overlapping.append(",".join(sorted(hit["gene"].unique())[:limit]))
+        prom = chrom_genes[
+            (chrom_genes["tss"] - promoter_pad < region["end"])
+            & (chrom_genes["tss"] + promoter_pad > region["start"])
+        ]
+        promoters.append(",".join(sorted(prom["gene"].unique())[:limit]))
+    result["genes"] = overlapping
+    result["promoter_of"] = promoters
+    return result
+
+
 def extract_to_regions(frame: pd.DataFrame) -> list[str]:
     """Convert a 0-based half-open BED frame into 1-based samtools region strings."""
     regions: list[str] = []
