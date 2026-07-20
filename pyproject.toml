@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "penetrance"
+version = "0.1.0"
+description = "Mechanism-aware penetrance prediction: a learned gene-level incomplete-penetrance-propensity model that supplies a Beta prior to an off-the-shelf per-variant Bayesian layer."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Penetrance Tool Contributors" }]
+keywords = [
+    "genetics",
+    "penetrance",
+    "constraint",
+    "bayesian",
+    "gnomad",
+    "clinvar",
+]
+dependencies = [
+    "numpy>=1.23",
+    "pandas>=1.5",
+    "scipy>=1.9",
+    "scikit-learn>=1.2",
+]
+
+[project.optional-dependencies]
+gbm = ["lightgbm>=3.3"]
+explain = ["shap>=0.41"]
+dev = ["pytest>=7.0", "lightgbm>=3.3", "shap>=0.41"]
+
+[project.scripts]
+penetrance = "penetrance.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+penetrance = ["data/*.csv"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
