@@ -48,6 +48,8 @@ if not st.session_state.qc_passed:
     st.warning("Run Setup QC successfully before analysis.")
 
 if st.button("Run methylation analysis", type="primary", disabled=not st.session_state.qc_passed):
+    loader = st.empty()
+    loader.markdown(branding.slicing_loader(), unsafe_allow_html=True)
     progress_bar = st.progress(0.0)
     status = st.empty()
 
@@ -60,6 +62,7 @@ if st.button("Run methylation analysis", type="primary", disabled=not st.session
         if cpg_islands:
             run_kwargs["cpg_islands"] = cpg_islands
         result = run(config(), **run_kwargs)
+        loader.empty()
         st.session_state.last_result = result
         st.success(f"Complete: {result['verdict']}")
         log = Path(result["output"]) / "pipeline.log"
@@ -67,6 +70,7 @@ if st.button("Run methylation analysis", type="primary", disabled=not st.session
             with st.expander("Pipeline log"):
                 st.code(log.read_text(encoding="utf-8", errors="replace"))
     except Exception as exc:
+        loader.empty()
         st.error(f"Analysis failed: {exc}")
         output = Path(st.session_state.output_dir)
         log = output / "pipeline.log"

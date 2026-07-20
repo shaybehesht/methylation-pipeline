@@ -24,6 +24,20 @@ from core.references import (
 initialize()
 branding.style()
 st.title("🥭 1. Setup")
+
+# Progress-based slice meter: the mango gains a slice as each step completes.
+_existing = st.session_state.get("samples", [])
+_bams_selected = sum(1 for item in _existing if item.get("bam_path"))
+_steps_done = (
+    _bams_selected
+    + int(bool(st.session_state.get("reference_ready")))
+    + int(bool(st.session_state.get("qc_passed")))
+)
+branding.slice_meter(
+    _steps_done, 5,
+    caption=f"Setup progress {_steps_done}/5 — pick 3 BAMs, prepare the reference, pass QC",
+)
+
 _roots = data_roots()
 st.caption(
     "Select local files by browsing these locations: "

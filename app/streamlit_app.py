@@ -10,6 +10,7 @@ branding.style()
 
 st.title(f"{branding.ICON} {branding.NAME}")
 st.caption(branding.TAGLINE)
+branding.accent(3)
 st.write(
     "Offline, configurable three-sample nanopore methylation analysis. "
     "Use the pages in the sidebar to validate inputs, define the region scope, "
