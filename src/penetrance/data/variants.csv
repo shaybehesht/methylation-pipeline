@@ -1,0 +1,31 @@
+variant_id,gene,hgvs,consequence,gnomad_af,affected_carriers,unaffected_carriers,prevalence_K,phenotype,source
+TUBA1A:p.Arg402His,TUBA1A,NM_006009.4:c.1205G>A,missense,0.0000010,38,1,0.0002,Lissencephaly,curated_demo
+TUBB3:p.Glu410Lys,TUBB3,NM_006086.4:c.1228G>A,missense,0.0000008,22,1,0.0001,CFEOM3,curated_demo
+COL1A1:p.Gly515Ala,COL1A1,NM_000088.4:c.1544G>C,missense,0.0000015,17,2,0.0003,Osteogenesis imperfecta,curated_demo
+FBN1:p.Cys1039Tyr,FBN1,NM_000138.5:c.3116G>A,missense,0.0000012,25,3,0.0002,Marfan syndrome,curated_demo
+BRCA1:p.Cys61Gly,BRCA1,NM_007294.4:c.181T>G,missense,0.00002,58,42,0.02,Breast/ovarian cancer,curated_demo
+BRCA1:c.68_69del,BRCA1,NM_007294.4:c.68_69del,frameshift,0.00005,120,95,0.02,Breast/ovarian cancer,curated_demo
+BRCA2:c.5946del,BRCA2,NM_000059.4:c.5946del,frameshift,0.0002,90,88,0.02,Breast/ovarian cancer,curated_demo
+BRCA2:p.Asn3124Ile,BRCA2,NM_000059.4:c.9371A>T,missense,0.00003,14,15,0.02,Breast/ovarian cancer,curated_demo
+LDLR:p.Gly592Glu,LDLR,NM_000527.5:c.1775G>A,missense,0.0001,44,26,0.004,Familial hypercholesterolemia,curated_demo
+LDLR:c.2043C>A,LDLR,NM_000527.5:c.2043C>A,nonsense,0.00006,33,15,0.004,Familial hypercholesterolemia,curated_demo
+LDLR:p.Asp227Glu,LDLR,NM_000527.5:c.681C>G,missense,0.0004,12,20,0.004,Familial hypercholesterolemia,curated_demo
+SDHB:p.Arg90Ter,SDHB,NM_003000.3:c.268C>T,nonsense,0.00003,15,28,0.0005,Paraganglioma,curated_demo
+SDHB:p.Ile127Ser,SDHB,NM_003000.3:c.380T>G,missense,0.00004,9,17,0.0005,Paraganglioma,curated_demo
+SDHD:p.Pro81Leu,SDHD,NM_003002.4:c.242C>T,missense,0.00005,31,20,0.0004,Paraganglioma,curated_demo
+MYH7:p.Arg403Gln,MYH7,NM_000257.4:c.1208G>A,missense,0.0000030,26,29,0.002,Hypertrophic cardiomyopathy,curated_demo
+MYH7:p.Arg719Trp,MYH7,NM_000257.4:c.2155C>T,missense,0.0000040,19,22,0.002,Hypertrophic cardiomyopathy,curated_demo
+MYBPC3:c.1224-52G>A,MYBPC3,NM_000256.3:c.1224-52G>A,splice,0.0006,48,72,0.002,Hypertrophic cardiomyopathy,curated_demo
+MYBPC3:p.Trp792fs,MYBPC3,NM_000256.3:c.2373dup,frameshift,0.00008,55,80,0.002,Hypertrophic cardiomyopathy,curated_demo
+KCNQ1:p.Ala341Val,KCNQ1,NM_000218.3:c.1022C>T,missense,0.0000050,40,38,0.0005,Long QT syndrome,curated_demo
+KCNH2:p.Ala561Val,KCNH2,NM_000238.4:c.1682C>T,missense,0.0000040,45,40,0.0005,Long QT syndrome,curated_demo
+KCNH2:p.Arg1047Leu,KCNH2,NM_000238.4:c.3140G>T,missense,0.0003,10,60,0.0005,Long QT syndrome,curated_demo
+HFE:p.Cys282Tyr,HFE,NM_000410.4:c.845G>A,missense,0.06,55,480,0.005,Hereditary hemochromatosis,curated_demo
+MLH1:c.1852_1854del,MLH1,NM_000249.4:c.1852_1854del,inframe_del,0.00002,33,27,0.003,Lynch syndrome,curated_demo
+MSH6:p.Arg1076Cys,MSH6,NM_000179.3:c.3226C>T,missense,0.0001,12,40,0.003,Lynch syndrome,curated_demo
+PMS2:c.137G>T,PMS2,NM_000535.7:c.137G>T,missense,0.0002,8,55,0.003,Lynch syndrome,curated_demo
+TTN:p.Arg8500His,TTN,NM_001267550.2:c.25499G>A,missense,0.0008,7,45,0.004,Dilated cardiomyopathy,curated_demo
+PKD1:c.11526del,PKD1,NM_001009944.3:c.11526del,frameshift,0.00002,58,3,0.001,Polycystic kidney disease,curated_demo
+RB1:c.1333C>T,RB1,NM_000321.3:c.1333C>T,nonsense,0.0000060,41,5,0.00005,Retinoblastoma,curated_demo
+CHEK2:p.Ile157Thr,CHEK2,NM_007194.4:c.470T>C,missense,0.004,28,140,0.02,Breast cancer,curated_demo
+ATM:c.7271T>G,ATM,NM_000051.4:c.7271T>G,missense,0.0002,18,52,0.02,Breast cancer,curated_demo
