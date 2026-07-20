@@ -2,6 +2,7 @@ from pathlib import Path
 
 import streamlit as st
 
+from app import branding
 from app.file_picker import (
     BAM_EXTENSIONS,
     VCF_EXTENSIONS,
@@ -21,6 +22,7 @@ from core.references import (
 )
 
 initialize()
+branding.style()
 st.title("🥭 1. Setup")
 _roots = data_roots()
 st.caption(

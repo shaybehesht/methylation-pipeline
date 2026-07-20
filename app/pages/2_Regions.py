@@ -1,8 +1,10 @@
 import streamlit as st
 
+from app import branding
 from app.state import initialize
 
 initialize()
+branding.style()
 st.title("🥭 2. Regions")
 labels = {
     "whole_genome": "Whole genome",

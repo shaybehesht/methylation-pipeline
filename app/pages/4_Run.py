@@ -3,12 +3,14 @@ from pathlib import Path
 
 import streamlit as st
 
+from app import branding
 from app.file_picker import data_roots
 from app.state import config, initialize
 
 from core.pipeline import run
 
 initialize()
+branding.style()
 st.title("🥭 4. Run")
 
 st.subheader("Where to save this run")

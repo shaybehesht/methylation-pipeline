@@ -4,6 +4,7 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
+from app import branding
 from app.state import initialize
 from core.figures import ROLE_COLORS
 from core.profile import parse_region, region_profile
@@ -34,6 +35,7 @@ def _run_pileups(run_dir: Path) -> tuple[dict, list]:
     return pileups, [label for label in labels if label in pileups]
 
 initialize()
+branding.style()
 st.title("🥭 5. Results")
 result = st.session_state.get("last_result")
 if result is None:

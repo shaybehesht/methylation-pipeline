@@ -2,12 +2,13 @@ from pathlib import Path
 
 import streamlit as st
 
-from app import bcm, remote
+from app import bcm, branding, remote
 from app.file_picker import data_roots, register_data_root, register_remote_mapping
 from app.state import initialize
 from core.annotations import extract_to_regions, panel_regions
 
 initialize()
+branding.style()
 st.title("🥭 0. Remote data (BCM / SSH)")
 st.caption(
     "Connect to a remote server, browse BAMs by path, and either download the "
