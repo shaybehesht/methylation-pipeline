@@ -1,0 +1,57 @@
+gene,gene_family,mechanism,penetrance,penetrance_source_type,ascertainment,phenotype,source,loeuf,pli,shet,phaplo,ptriplo,mis_oe,mis_lof_path_ratio,path_af_mean,path_af_max,n_path,hpo_breadth,paralog_count
+TUBA1A,tubulin,DN_GoF,0.97,single_study,clinical,Malformations of cortical development,Bahi-Buisson 2014,0.35,0.95,0.15,0.85,0.30,0.28,0.98,0.0000012,0.000004,45,6,8
+TUBB2B,tubulin,DN_GoF,0.96,single_study,clinical,Polymicrogyria,Cederquist 2012,0.42,0.90,0.12,0.80,0.28,0.31,0.97,0.0000010,0.000003,22,5,8
+TUBB3,tubulin,DN_GoF,0.95,single_study,clinical,CFEOM3/cortical dysplasia,Tischfield 2010,0.40,0.92,0.13,0.82,0.30,0.30,0.98,0.0000011,0.000004,30,6,8
+TUBB,tubulin,DN_GoF,0.95,single_study,clinical,Cortical dysplasia/microcephaly,Breuss 2012,0.45,0.88,0.11,0.78,0.29,0.33,0.96,0.0000012,0.000005,18,5,8
+TUBG1,tubulin,DN_GoF,0.94,single_study,clinical,Malformations of cortical development,Poirier 2013,0.50,0.85,0.10,0.75,0.31,0.35,0.95,0.0000013,0.000006,12,4,2
+TUBA8,tubulin,mixed,0.90,single_study,clinical,Cortical dysplasia,Abdollahi 2009,0.60,0.40,0.06,0.55,0.33,0.55,0.80,0.0000030,0.00002,6,3,8
+TUBB4A,tubulin,DN_GoF,0.93,single_study,clinical,H-ABC leukodystrophy,Simons 2013,0.48,0.86,0.10,0.76,0.30,0.34,0.95,0.0000012,0.000005,15,4,8
+COL1A1,collagen,DN_GoF,0.92,family,clinical,Osteogenesis imperfecta,Marini 2007,0.20,1.00,0.20,0.90,0.35,0.30,0.85,0.0000020,0.00001,120,7,1
+COL1A2,collagen,DN_GoF,0.90,family,clinical,Osteogenesis imperfecta,Marini 2007,0.25,0.99,0.18,0.88,0.34,0.33,0.83,0.0000022,0.00001,110,7,1
+FBN1,fibrillin,DN_GoF,0.90,family,clinical,Marfan syndrome,Faivre 2007,0.15,1.00,0.22,0.92,0.36,0.28,0.88,0.0000018,0.000008,90,8,1
+NF1,rasopathy,LoF_HI,0.98,family,clinical,Neurofibromatosis type 1,Friedman 1999,0.10,1.00,0.25,0.95,0.30,0.60,0.55,0.0000015,0.000006,150,9,1
+MECP2,x_neuro,LoF_HI,0.95,family,clinical,Rett syndrome,Neul 2008,0.20,0.95,0.15,0.85,0.28,0.45,0.60,0.0000010,0.000004,40,8,1
+SCN1A,channel,LoF_HI,0.90,family,clinical,Dravet syndrome,Depienne 2009,0.08,1.00,0.30,0.95,0.32,0.40,0.55,0.0000012,0.000006,200,7,9
+RB1,tumor_suppressor,LoF_HI,0.90,clinical,clinical,Retinoblastoma,Lohmann 2018,0.30,0.80,0.15,0.75,0.42,0.60,0.40,0.0000080,0.00004,200,4,1
+APC,tumor_suppressor,LoF_HI,0.95,clinical,clinical,Familial adenomatous polyposis,Half 2009,0.35,0.90,0.16,0.78,0.42,0.70,0.35,0.0000090,0.00005,300,4,1
+BRCA1,hboc,LoF_HI,0.60,population,population,Breast/ovarian cancer,Kuchenbaecker 2017,0.55,0.10,0.09,0.60,0.45,0.85,0.35,0.00003,0.0002,300,5,1
+BRCA2,hboc,LoF_HI,0.52,population,population,Breast/ovarian cancer,Kuchenbaecker 2017,0.48,0.05,0.08,0.55,0.44,0.90,0.32,0.00003,0.0003,350,5,1
+PALB2,hboc,LoF_HI,0.35,population,population,Breast cancer,Yang 2020,0.70,0.02,0.05,0.45,0.48,0.95,0.25,0.00004,0.0004,80,4,1
+CHEK2,hboc,LoF_HI,0.20,population,population,Breast cancer,Adank 2011,0.65,0.01,0.04,0.40,0.50,0.92,0.20,0.0006,0.004,40,4,1
+ATM,hboc,LoF_HI,0.22,population,population,Breast cancer,Marabelli 2016,0.60,0.02,0.06,0.50,0.47,0.90,0.28,0.0004,0.002,120,5,1
+MLH1,mmr,LoF_HI,0.55,population,clinical,Lynch syndrome,Moller 2018,0.50,0.20,0.10,0.62,0.45,0.80,0.30,0.00002,0.0001,180,5,1
+MSH2,mmr,LoF_HI,0.52,population,clinical,Lynch syndrome,Moller 2018,0.52,0.15,0.09,0.60,0.46,0.82,0.32,0.00002,0.0001,170,5,1
+MSH6,mmr,LoF_HI,0.25,population,clinical,Lynch syndrome,Moller 2018,0.58,0.10,0.07,0.55,0.47,0.85,0.28,0.00003,0.0002,90,4,1
+PMS2,mmr,LoF_HI,0.13,population,population,Lynch syndrome,ten Broeke 2018,0.75,0.05,0.04,0.42,0.49,0.90,0.22,0.00005,0.0004,60,4,1
+TP53,li_fraumeni,DN_GoF,0.75,clinical,clinical,Li-Fraumeni syndrome,Mai 2016,0.45,0.30,0.12,0.65,0.40,0.35,0.80,0.00001,0.00008,250,6,1
+LDLR,fh,LoF_HI,0.65,population,population,Familial hypercholesterolemia,Fahed 2020,0.55,0.15,0.08,0.58,0.44,0.70,0.45,0.00008,0.0006,600,4,1
+APOB,fh,DN_GoF,0.45,population,population,Familial hypercholesterolemia,Fahed 2020,0.80,0.00,0.03,0.35,0.52,0.88,0.65,0.002,0.006,15,4,1
+PCSK9,fh,DN_GoF,0.40,population,population,Familial hypercholesterolemia,Fahed 2020,0.90,0.00,0.02,0.30,0.55,0.85,0.70,0.001,0.005,10,3,1
+SDHB,pgl_pheo,LoF_HI,0.35,population,population,Paraganglioma/pheochromocytoma,Andrews 2018,0.60,0.20,0.07,0.55,0.46,0.80,0.35,0.00004,0.0003,120,5,4
+SDHD,pgl_pheo,LoF_HI,0.60,clinical,clinical,Paraganglioma (paternal),Andrews 2018,0.70,0.10,0.05,0.48,0.48,0.85,0.30,0.00005,0.0004,60,4,4
+SDHC,pgl_pheo,LoF_HI,0.25,clinical,clinical,Paraganglioma,Andrews 2018,0.75,0.08,0.04,0.45,0.49,0.88,0.28,0.00006,0.0005,40,4,4
+SDHA,pgl_pheo,LoF_HI,0.13,population,population,Paraganglioma,Maniam 2018,0.72,0.12,0.05,0.50,0.47,0.82,0.32,0.0001,0.0008,50,4,4
+VHL,pgl_pheo,LoF_HI,0.80,clinical,clinical,Von Hippel-Lindau,Binderup 2022,0.35,0.60,0.15,0.75,0.42,0.55,0.50,0.000008,0.00005,180,7,1
+RET,pgl_pheo,DN_GoF,0.70,clinical,clinical,MEN2,Wells 2015,0.40,0.20,0.10,0.60,0.40,0.30,0.90,0.00002,0.0001,90,6,1
+MAX,pgl_pheo,LoF_HI,0.20,single_study,clinical,Pheochromocytoma,Comino-Mendez 2011,0.85,0.05,0.03,0.38,0.51,0.80,0.35,0.00008,0.0006,12,3,1
+TMEM127,pgl_pheo,LoF_HI,0.18,single_study,clinical,Pheochromocytoma,Yao 2010,0.88,0.04,0.03,0.36,0.52,0.82,0.30,0.0001,0.0008,10,3,1
+MYH7,sarcomere,DN_GoF,0.45,population,population,Hypertrophic cardiomyopathy,Lorenzini 2020,0.30,0.20,0.10,0.60,0.42,0.35,0.92,0.00002,0.0001,300,5,2
+MYBPC3,sarcomere,LoF_HI,0.40,population,population,Hypertrophic cardiomyopathy,Lorenzini 2020,0.45,0.10,0.08,0.58,0.45,0.75,0.50,0.00005,0.0006,400,5,1
+TNNT2,sarcomere,DN_GoF,0.35,clinical,family,Hypertrophic/dilated cardiomyopathy,Ho 2018,0.55,0.05,0.06,0.50,0.46,0.40,0.85,0.00003,0.0002,80,4,1
+TNNI3,sarcomere,DN_GoF,0.38,clinical,family,Hypertrophic cardiomyopathy,Ho 2018,0.60,0.04,0.05,0.48,0.47,0.42,0.83,0.00003,0.0002,60,4,1
+TPM1,sarcomere,DN_GoF,0.40,clinical,family,Hypertrophic cardiomyopathy,Ho 2018,0.58,0.06,0.06,0.50,0.46,0.38,0.86,0.00003,0.0002,50,4,2
+MYL2,sarcomere,DN_GoF,0.30,single_study,family,Hypertrophic cardiomyopathy,Ho 2018,0.62,0.03,0.04,0.46,0.48,0.45,0.80,0.00004,0.0003,40,3,2
+ACTC1,sarcomere,DN_GoF,0.42,single_study,family,Hypertrophic cardiomyopathy,Ho 2018,0.55,0.05,0.05,0.50,0.46,0.35,0.88,0.00003,0.0002,35,4,5
+KCNQ1,channel,DN_GoF,0.50,population,population,Long QT syndrome type 1,Wright 2024,0.45,0.15,0.08,0.58,0.44,0.40,0.85,0.00004,0.0004,250,4,1
+KCNH2,channel,DN_GoF,0.55,population,population,Long QT syndrome type 2,Wright 2024,0.42,0.18,0.09,0.60,0.43,0.38,0.88,0.00003,0.0003,280,4,1
+SCN5A,channel,mixed,0.35,population,population,Long QT syndrome type 3/Brugada,Wright 2024,0.38,0.20,0.10,0.62,0.42,0.42,0.80,0.00006,0.0006,300,5,9
+CACNA1C,channel,DN_GoF,0.60,single_study,clinical,Timothy syndrome,Splawski 2004,0.10,1.00,0.20,0.90,0.35,0.30,0.95,0.0000010,0.000005,20,6,3
+RYR2,channel,DN_GoF,0.65,clinical,clinical,Catecholaminergic polymorphic VT,Priori 2002,0.20,0.90,0.15,0.80,0.40,0.32,0.95,0.0000020,0.00001,150,5,3
+LMNA,cardiomyopathy,LoF_HI,0.70,population,clinical,Dilated cardiomyopathy/laminopathy,Wahbi 2019,0.40,0.30,0.10,0.62,0.44,0.55,0.55,0.00003,0.0002,180,7,1
+DSP,cardiomyopathy,LoF_HI,0.50,clinical,family,Arrhythmogenic cardiomyopathy,Smith 2020,0.50,0.15,0.07,0.55,0.46,0.70,0.45,0.00004,0.0003,90,5,1
+PKP2,cardiomyopathy,LoF_HI,0.45,population,population,Arrhythmogenic RV cardiomyopathy,Wright 2024,0.55,0.10,0.06,0.52,0.47,0.80,0.35,0.00005,0.0005,150,4,1
+DSG2,cardiomyopathy,LoF_HI,0.35,clinical,family,Arrhythmogenic cardiomyopathy,Smith 2020,0.60,0.08,0.05,0.48,0.48,0.75,0.40,0.00006,0.0006,70,4,4
+TTN,cardiomyopathy,LoF_HI,0.30,population,population,Dilated cardiomyopathy,Wright 2024,0.90,0.00,0.02,0.30,0.55,0.95,0.25,0.0002,0.002,500,4,1
+PKD1,pkd,LoF_HI,0.95,clinical,clinical,Autosomal dominant polycystic kidney disease,Cornec-Le Gall 2013,0.55,0.20,0.09,0.60,0.44,0.65,0.55,0.00002,0.0001,400,4,1
+PKD2,pkd,LoF_HI,0.80,clinical,clinical,Autosomal dominant polycystic kidney disease,Cornec-Le Gall 2013,0.60,0.15,0.07,0.55,0.46,0.70,0.45,0.00003,0.0002,200,4,1
+HFE,iron,LoF_HI,0.10,population,population,Hereditary hemochromatosis (C282Y),Allen 2008,0.95,0.00,0.02,0.25,0.55,0.90,0.30,0.03,0.06,3,3,1
