@@ -162,9 +162,12 @@ task run_mango {
     ln -s "~{relative2_bai}"   "bams/~{relative2_label}.bam.bai"
 
     # Reference: either the provided FASTA (+.fai) or auto-download via --assembly.
-    if [ -n "~{reference_fasta}" ]; then
-      ln -s "~{reference_fasta}" refs/reference.fa
-      ln -s "~{reference_fai}"   refs/reference.fa.fai
+    # Use default="" so the optional File placeholders render cleanly when unset.
+    REFERENCE_FASTA="~{default="" reference_fasta}"
+    REFERENCE_FAI="~{default="" reference_fai}"
+    if [ -n "$REFERENCE_FASTA" ]; then
+      ln -s "$REFERENCE_FASTA" refs/reference.fa
+      ln -s "$REFERENCE_FAI"   refs/reference.fa.fai
       REF_ARG="--reference-fasta refs/reference.fa ~{"--gtf " + gtf} ~{"--cpg-islands " + cpg_islands}"
     else
       REF_ARG="--assembly ~{assembly} ~{"--gtf " + gtf} ~{"--cpg-islands " + cpg_islands}"
