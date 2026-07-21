@@ -1,35 +1,42 @@
 # MANGO as an interactive application inside an AnVIL / Terra Cloud Environment.
 #
-# This image layers Jupyter + jupyter-server-proxy and the Google Cloud SDK on
-# top of the same conda environment the app already uses (modkit, samtools,
-# htslib, methylartist, modbamtools, and the Python deps from environment.yml).
+# Layers Jupyter + jupyter-server-proxy and the Google Cloud SDK on top of the
+# analysis tools (modkit, samtools/htslib, methylartist) and the MANGO package.
 # Terra's Leonardo launches it as a Jupyter server; MANGO then appears in the
 # Jupyter Launcher and is served at ``.../proxy/mango/`` via the
 # ``jupyter_serverproxy_servers`` entry point declared in pyproject.toml.
+#
+# Note: modbamtools is installed via pip (it is not a conda package on the
+# configured channels for linux-64), and the source is copied before the
+# editable install so the Streamlit pages and console/proxy entry points resolve.
 #
 # Build from the repository root so the whole project is in the build context:
 #   docker build -f anvil/Dockerfile -t <registry>/mango-anvil:latest .
 FROM mambaorg/micromamba:2.3.3
 
 USER root
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl \
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl tar gzip \
     && rm -rf /var/lib/apt/lists/*
 USER $MAMBA_USER
 
-COPY --chown=$MAMBA_USER:$MAMBA_USER environment.yml pyproject.toml /app/
-WORKDIR /app
-# Analysis tools + app (environment.yml runs `pip install -e .`, which also
-# registers the jupyter-server-proxy entry point), plus the Jupyter/proxy layer
-# and gsutil/gcloud for reading requester-pays workspace buckets.
-RUN micromamba install -y -n base -f environment.yml \
-    && micromamba install -y -n base -c conda-forge \
-       jupyterlab jupyter-server-proxy google-cloud-sdk \
+# Analysis binaries + Jupyter/proxy layer + gsutil/gcloud (requester-pays reads).
+RUN micromamba install -y -n base -c conda-forge -c bioconda \
+      python=3.11 ont-modkit samtools htslib methylartist pip \
+      jupyterlab jupyter-server-proxy google-cloud-sdk \
     && micromamba clean --all --yes
 
 COPY --chown=$MAMBA_USER:$MAMBA_USER . /app
+WORKDIR /app
+
+# Editable install (source present) registers the mango console/proxy entry
+# points and keeps app/pages/ next to streamlit_app.py; modbamtools via pip.
+ARG MAMBA_DOCKERFILE_ACTIVATE=1
+RUN pip install --no-cache-dir -e . \
+    && pip install --no-cache-dir modbamtools
 
 ENV PATH="/opt/conda/bin:${PATH}" \
     PYTHONPATH=/app \
+    MPLBACKEND=Agg \
     METHYL_TRIO_DATA_ROOT=/home/mambauser \
     METHYL_TRIO_REFERENCE_CACHE=/home/mambauser/.cache/methyl-trio/references
 

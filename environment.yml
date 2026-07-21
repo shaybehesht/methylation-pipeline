@@ -10,7 +10,9 @@ dependencies:
   - samtools
   - htslib
   - methylartist
-  - modbamtools
   - pip
   - pip:
+      # modbamtools is not a conda package on the configured channels; install it
+      # from PyPI so the environment solves on linux-64 as well as osx-arm64.
+      - modbamtools
       - -e .
