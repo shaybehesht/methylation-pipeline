@@ -155,6 +155,13 @@ task run_mango {
     ln -s "~{relative2_bam}"   "bams/~{relative2_label}.bam"
     ln -s "~{relative2_bai}"   "bams/~{relative2_label}.bam.bai"
 
+    # WDL 1.0 has no sep() function, so build the multi-value flags in bash from
+    # space-joined placeholder strings (the sep= placeholder option is 1.0-valid).
+    CHROMS="~{sep=' ' chromosomes}"
+    GENES="~{sep=' ' genes}"
+    if [ -n "$CHROMS" ]; then CHROM_ARG="--chromosomes $CHROMS"; else CHROM_ARG=""; fi
+    if [ -n "$GENES" ]; then GENE_ARG="--genes $GENES"; else GENE_ARG=""; fi
+
     mango-run \
       --proband-bam "bams/~{proband_label}.bam" --proband-label "~{proband_label}" \
       --proband-sex ~{proband_sex} ~{"--proband-affection " + proband_affection} \
@@ -169,8 +176,7 @@ task run_mango {
       --reference-fasta refs/reference.fa \
       ~{"--gtf " + gtf} ~{"--cpg-islands " + cpg_islands} \
       --mode ~{mode} \
-      ~{if length(chromosomes) > 0 then "--chromosomes " + sep(" ", chromosomes) else ""} \
-      ~{if length(genes) > 0 then "--genes " + sep(" ", genes) else ""} \
+      $CHROM_ARG $GENE_ARG \
       ~{"--phased-vcf " + phased_vcf} \
       ~{sep=" " prefix("--modified-base ", modified_bases)} \
       ~{if combine_strands then "" else "--no-combine-strands"} \
