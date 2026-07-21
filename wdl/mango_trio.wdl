@@ -173,12 +173,18 @@ task run_mango {
       REF_ARG="--assembly ~{assembly} ~{"--gtf " + gtf} ~{"--cpg-islands " + cpg_islands}"
     fi
 
-    # WDL 1.0 has no sep() function, so build the multi-value flags in bash from
-    # space-joined placeholder strings (the sep= placeholder option is 1.0-valid).
-    CHROMS="~{sep=' ' chromosomes}"
-    GENES="~{sep=' ' genes}"
-    if [ -n "$CHROMS" ]; then CHROM_ARG="--chromosomes $CHROMS"; else CHROM_ARG=""; fi
-    if [ -n "$GENES" ]; then GENE_ARG="--genes $GENES"; else GENE_ARG=""; fi
+    # Build multi-value flags in bash from write_lines files. This avoids
+    # Cromwell's "Cannot interpolate Array[Nothing]" error that sep= raises on an
+    # empty array (e.g. genes=[] in chromosomes mode, or chromosomes=[] otherwise).
+    CHROMS="$(tr '\n' ' ' < ~{write_lines(chromosomes)})"
+    GENES="$(tr '\n' ' ' < ~{write_lines(genes)})"
+    if [ -n "${CHROMS// /}" ]; then CHROM_ARG="--chromosomes $CHROMS"; else CHROM_ARG=""; fi
+    if [ -n "${GENES// /}" ]; then GENE_ARG="--genes $GENES"; else GENE_ARG=""; fi
+
+    MOD_ARGS=""
+    while read -r _mb; do [ -n "$_mb" ] && MOD_ARGS="$MOD_ARGS --modified-base $_mb"; done < ~{write_lines(modified_bases)}
+    THRESH_ARGS=""
+    while read -r _th; do [ -n "$_th" ] && THRESH_ARGS="$THRESH_ARGS --set-threshold $_th"; done < ~{write_lines(threshold_overrides)}
 
     mango-run \
       --proband-bam "bams/~{proband_label}.bam" --proband-label "~{proband_label}" \
@@ -195,9 +201,9 @@ task run_mango {
       --mode ~{mode} \
       $CHROM_ARG $GENE_ARG \
       ~{"--phased-vcf " + phased_vcf} \
-      ~{sep=" " prefix("--modified-base ", modified_bases)} \
+      $MOD_ARGS \
       ~{if combine_strands then "" else "--no-combine-strands"} \
-      ~{sep=" " prefix("--set-threshold ", threshold_overrides)} \
+      $THRESH_ARGS \
       --output-dir out
 
     tar -czf mango_run.tar.gz -C out .
