@@ -22,8 +22,8 @@ Open <http://localhost:8501>. The host data directory is mounted read-only at
 `/data` (browse it in Setup); the reference cache is mounted read-write at
 `/reference-cache`; results are written under `./runs`.
 
-The image includes modkit, samtools/htslib, methylartist, modbamtools, and
-Python. Reference FASTAs and matching GENCODE/CpG-island annotations are **not**
+The image includes modkit, samtools/htslib, and Python. Reference FASTAs and
+matching GENCODE/CpG-island annotations are **not**
 baked into the image; they are downloaded on demand into the mounted reference
 cache so the image stays small and both assemblies are not duplicated. Only the
 one-time reference preparation needs internet access — subsequent analysis runs
@@ -48,11 +48,16 @@ methyl-trio                   # launches the app at http://localhost:8501
 `setup.sh` builds the env from `environment.yml` (which pulls `ont-modkit`,
 `samtools`, `htslib`, and — via `pip install -e .` — Streamlit, pysam, pandas,
 scipy, matplotlib, plotly, and paramiko) and registers the `methyl-trio`
-command. Equivalent manual steps:
+command. On **Apple Silicon** it automatically builds the env as `osx-64`
+(Rosetta), because several bioconda tools ship only `osx-64` builds; if a solve
+still complains about Rosetta, run `softwareupdate --install-rosetta --agree-to-license`
+once. Equivalent manual steps:
 
 ```bash
+# On Apple Silicon prefix the create with: CONDA_SUBDIR=osx-64
 conda env create -n methyl-trio-ui -f environment.yml
 conda activate methyl-trio-ui
+conda config --env --set subdir osx-64   # Apple Silicon only
 pip install -e .
 methyl-trio
 ```
