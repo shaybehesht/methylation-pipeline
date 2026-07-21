@@ -1,6 +1,6 @@
 name: Build and push MANGO image (GHCR)
 
-# Builds the MANGO analysis image (repo-root Dockerfile: mango-run + modkit +
+# Builds the MANGO analysis image (wdl/Dockerfile: mango-run + modkit +
 # samtools) and pushes it to GitHub Container Registry. This needs no cloud
 # billing — it uses the free GITHUB_TOKEN — so it is the easiest way to get an
 # image that Terra/Cromwell can pull for the WDL workflow.
@@ -53,7 +53,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./Dockerfile
+          file: ./wdl/Dockerfile
           push: true
           tags: |
             ${{ steps.image.outputs.name }}:latest

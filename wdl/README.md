@@ -38,7 +38,8 @@ These steps require your credentials/accounts and cannot be done from the repo:
 
 ### 1. Build and publish the Docker image
 The workflow needs a container that has `mango-run` plus `modkit`/`samtools`.
-The repo root `Dockerfile` already builds exactly that.
+[`wdl/Dockerfile`](Dockerfile) builds exactly that (a minimal image; the app's
+optional viz extras are excluded so it is small and builds reliably).
 
 **Easiest (no cloud billing) — GitHub Actions -> GHCR.** This repo includes
 `.github/workflows/build-image.yml`, which builds the image and pushes it to
@@ -57,7 +58,7 @@ make the package public so Terra can pull it anonymously: GitHub -> your profile
 
 ```bash
 IMG=<REGION>-docker.pkg.dev/<YOUR_GCP_PROJECT>/<REPO>/mango:latest
-gcloud builds submit --tag "$IMG" .   # or: docker build -t "$IMG" . && docker push "$IMG"
+docker build -f wdl/Dockerfile -t "$IMG" . && docker push "$IMG"
 ```
 
 Then set `"mango_trio.docker": "<that image>"`. For a private Artifact Registry,
@@ -105,4 +106,6 @@ right.
 ## What is already done for you in this repo
 - `mango-run` headless CLI (`core/cli.py`) and its console-script entry point.
 - The WDL, inputs template, and `.dockstore.yml`.
-- The Docker image definition (repo root `Dockerfile`) that includes `mango-run`.
+- The Docker image definition (`wdl/Dockerfile`) that includes `mango-run`.
+- A GitHub Actions workflow (`.github/workflows/build-image.yml`) that builds and
+  pushes that image to GHCR with no cloud billing.
