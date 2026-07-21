@@ -59,7 +59,7 @@ workflow mango_trio {
     Array[String] threshold_overrides = []   # e.g. ["min_sites=5", "alpha=0.05"]
 
     # --- Runtime ---
-    String docker
+    String docker = "docker.io/shaghayeghb/mango:latest"
     Int cpu = 4
     Int memory_gb = 16
     Int disk_gb = 100
