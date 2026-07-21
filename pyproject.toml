@@ -24,6 +24,7 @@ test = ["pytest>=8.3"]
 
 [project.scripts]
 methyl-trio = "app.launch:main"
+mango-run = "core.cli:main"
 
 # Surfaces MANGO in the Jupyter Launcher and proxies it at .../proxy/mango/ when
 # running inside an AnVIL / Terra Cloud Environment (needs jupyter-server-proxy).

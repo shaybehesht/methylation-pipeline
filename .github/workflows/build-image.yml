@@ -1,0 +1,65 @@
+name: Build and push MANGO image (GHCR)
+
+# Builds the MANGO analysis image (wdl/Dockerfile: mango-run + modkit +
+# samtools) and pushes it to GitHub Container Registry. This needs no cloud
+# billing — it uses the free GITHUB_TOKEN — so it is the easiest way to get an
+# image that Terra/Cromwell can pull for the WDL workflow.
+#
+# After the first successful run, make the package public so Terra can pull it
+# anonymously: GitHub -> your profile -> Packages -> "mango" -> Package settings
+# -> Change visibility -> Public. Then set the WDL input:
+#   "mango_trio.docker": "ghcr.io/<owner>/mango:latest"
+
+on:
+  push:
+    branches:
+      - cursor/mango-wdl-workflow-06d8
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Free extra disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc \
+            /opt/hostedtoolcache/CodeQL || true
+          docker image prune -af || true
+          df -h
+
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Compute lowercase image name
+        id: image
+        run: echo "name=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/mango" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./wdl/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.image.outputs.name }}:latest
+            ${{ steps.image.outputs.name }}:${{ github.sha }}
+
+      - name: Summary
+        run: |
+          echo "Pushed ${{ steps.image.outputs.name }}:latest" >> "$GITHUB_STEP_SUMMARY"
+          echo "Use it in wdl/inputs.template.json as mango_trio.docker" >> "$GITHUB_STEP_SUMMARY"

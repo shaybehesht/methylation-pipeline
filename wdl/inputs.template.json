@@ -1,0 +1,42 @@
+{
+  "__comment__": "MANGO trio DMR workflow inputs. Replace gs:// paths and the docker image. In a Terra workspace you can bind fields to a Data Table, e.g. \"this.proband_bam\".",
+
+  "mango_trio.proband_bam": "gs://your-workspace-bucket/proband.bam",
+  "mango_trio.proband_bai": "gs://your-workspace-bucket/proband.bam.bai",
+  "mango_trio.proband_label": "proband",
+  "mango_trio.proband_sex": "F",
+  "mango_trio.proband_affection": "affected",
+
+  "mango_trio.relative1_bam": "gs://your-workspace-bucket/mother.bam",
+  "mango_trio.relative1_bai": "gs://your-workspace-bucket/mother.bam.bai",
+  "mango_trio.relative1_label": "mother",
+  "mango_trio.relative1_sex": "F",
+  "mango_trio.relative1_relationship": "mother",
+  "mango_trio.relative1_affection": "unaffected",
+
+  "mango_trio.relative2_bam": "gs://your-workspace-bucket/father.bam",
+  "mango_trio.relative2_bai": "gs://your-workspace-bucket/father.bam.bai",
+  "mango_trio.relative2_label": "father",
+  "mango_trio.relative2_sex": "M",
+  "mango_trio.relative2_relationship": "father",
+  "mango_trio.relative2_affection": "unaffected",
+
+  "mango_trio.reference_fasta": "gs://your-workspace-bucket/references/hg38.fa",
+  "mango_trio.reference_fai": "gs://your-workspace-bucket/references/hg38.fa.fai",
+  "mango_trio.gtf": "gs://your-workspace-bucket/references/gencode.v49.annotation.gtf",
+  "mango_trio.cpg_islands": "gs://your-workspace-bucket/references/cpgIslandExt.txt",
+
+  "mango_trio.mode": "targeted",
+  "mango_trio.chromosomes": [],
+  "mango_trio.genes": ["MECP2", "UBE3A", "SNRPN"],
+
+  "mango_trio.modified_bases": ["5mC"],
+  "mango_trio.combine_strands": true,
+  "mango_trio.threshold_overrides": ["min_sites=5", "alpha=0.05"],
+
+  "mango_trio.docker": "ghcr.io/shaybehesht/mango:latest",
+  "mango_trio.cpu": 4,
+  "mango_trio.memory_gb": 16,
+  "mango_trio.disk_gb": 100,
+  "mango_trio.preemptible": 1
+}
