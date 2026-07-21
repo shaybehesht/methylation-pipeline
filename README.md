@@ -66,10 +66,27 @@ export METHYL_TRIO_DATA=/absolute/path/to/data
 docker compose up --build
 ```
 
+### Handing a copy to a colleague without repo access
+
+If your colleague cannot clone the repo, build a self-contained zip and send it:
+
+```bash
+bash package.sh            # writes ./mango.zip (only version-controlled files)
+```
+
+They then:
+
+```bash
+unzip mango.zip && cd mango
+bash setup.sh
+conda activate methyl-trio-ui
+python -m streamlit run app/streamlit_app.py   # or ./run.sh
+```
+
 ### What each colleague does
 
 1. Get the code: `git clone <repo-url>` (and `git checkout <branch>` if this is
-   still on a feature branch).
+   still on a feature branch), or unzip the `mango.zip` you sent them.
 2. Install with Option A or B above.
 3. Launch and open <http://localhost:8501>.
 4. In **Setup**, choose hg38/hg19 and click **Download and prepare** once (a
