@@ -24,6 +24,7 @@ test = ["pytest>=8.3"]
 
 [project.scripts]
 methyl-trio = "app.launch:main"
+mango-run = "core.cli:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
