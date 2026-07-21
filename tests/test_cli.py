@@ -99,3 +99,52 @@ def test_parse_thresholds_rejects_unknown_and_malformed():
 def test_set_threshold_flows_into_config():
     config = _config(["--mode", "whole_genome", "--set-threshold", "min_sites=7"])
     assert config.thresholds["min_sites"] == 7
+
+
+# --- reference resolution (auto-download) ---
+
+NO_REF_ARGS = [
+    "--proband-bam", "proband.bam", "--proband-sex", "F",
+    "--relative1-bam", "mother.bam", "--relative1-sex", "F",
+    "--relative2-bam", "father.bam", "--relative2-sex", "M",
+    "--output-dir", "out", "--mode", "whole_genome",
+]
+
+
+def test_reference_fasta_is_optional_in_parser():
+    args = cli.build_parser().parse_args(NO_REF_ARGS)
+    assert args.reference_fasta == ""
+
+
+def test_resolve_reference_noop_when_fasta_provided():
+    args = cli.build_parser().parse_args(BASE_ARGS + ["--mode", "whole_genome"])
+    cli.resolve_reference(args)  # must not touch the network
+    assert args.reference_fasta == "hg38.fa"
+
+
+def test_resolve_reference_requires_fasta_or_assembly():
+    args = cli.build_parser().parse_args(NO_REF_ARGS)
+    with pytest.raises(ValueError, match="assembly"):
+        cli.resolve_reference(args)
+
+
+def test_resolve_reference_downloads_from_assembly(monkeypatch, tmp_path):
+    import core.references as refs
+
+    def fake_prepare(key, progress=None):
+        assert key == "hg38"
+        return {
+            "fasta": tmp_path / "genome.fa",
+            "gtf": tmp_path / "gencode.gtf.gz",
+            "cpg_islands": tmp_path / "cpg.bed",
+        }
+
+    monkeypatch.setattr(refs, "prepare_assembly", fake_prepare)
+    args = cli.build_parser().parse_args(NO_REF_ARGS + ["--assembly", "hg38"])
+    cli.resolve_reference(args)
+    assert args.reference_fasta == str(tmp_path / "genome.fa")
+    assert args.gtf == str(tmp_path / "gencode.gtf.gz")
+    assert args.cpg_islands == str(tmp_path / "cpg.bed")
+    # a resolved config can now be built
+    config = cli.build_config(args)
+    assert config.reference_fasta == str(tmp_path / "genome.fa")

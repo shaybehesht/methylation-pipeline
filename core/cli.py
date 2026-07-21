@@ -69,13 +69,17 @@ def build_parser() -> argparse.ArgumentParser:
     _add_sample_flags(parser, "relative2", proband=False)
 
     refs = parser.add_argument_group("reference")
-    refs.add_argument("--reference-fasta", required=True, help="Reference FASTA (indexed).")
+    refs.add_argument(
+        "--reference-fasta", default="",
+        help="Reference FASTA (indexed). Omit to auto-download via --assembly.",
+    )
     refs.add_argument("--gtf", default=None, help="GENCODE GTF (required for targeted mode).")
     refs.add_argument("--cpg-islands", default=None, help="UCSC CpG-island track.")
     refs.add_argument(
         "--assembly", default="",
-        help="Managed assembly key (e.g. hg38) used only to auto-download annotations "
-        "when --gtf/--cpg-islands are omitted.",
+        help="Managed assembly key (hg38/hg19). When --reference-fasta is omitted, the "
+        "matching FASTA, GENCODE GTF, and CpG islands are downloaded and prepared "
+        "automatically (cached in METHYL_TRIO_REFERENCE_CACHE).",
     )
 
     regions = parser.add_argument_group("regions")
@@ -127,6 +131,30 @@ def parse_thresholds(pairs: Sequence[str] | None) -> dict[str, float | int]:
     return result
 
 
+def resolve_reference(args: argparse.Namespace, progress=None) -> None:
+    """Ensure ``args.reference_fasta`` is set, auto-downloading from ``--assembly``.
+
+    When no ``--reference-fasta`` was given, the managed assembly (hg38/hg19) is
+    downloaded and prepared, and the FASTA, GTF, and CpG-island paths are filled
+    in (any explicitly provided ``--gtf``/``--cpg-islands`` take precedence). This
+    performs network I/O, so it is kept out of :func:`build_config` (which stays
+    pure and unit-testable).
+    """
+    if args.reference_fasta:
+        return
+    if not args.assembly:
+        raise ValueError(
+            "Provide --reference-fasta, or --assembly (hg38/hg19) to auto-download a "
+            "managed reference."
+        )
+    from core.references import prepare_assembly
+
+    paths = prepare_assembly(args.assembly, progress=progress)
+    args.reference_fasta = str(paths["fasta"])
+    args.gtf = args.gtf or str(paths["gtf"])
+    args.cpg_islands = args.cpg_islands or str(paths["cpg_islands"])
+
+
 def _sample(args: argparse.Namespace, slot: str, role: Role) -> Sample:
     bam = getattr(args, f"{slot}_bam")
     label = getattr(args, f"{slot}_label") or slot
@@ -173,15 +201,17 @@ def build_config(args: argparse.Namespace) -> TrioConfig:
 def main(argv: Sequence[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+
+    def report(fraction: float, message: str) -> None:
+        print(f"[{fraction * 100:5.1f}%] {message}", file=sys.stderr, flush=True)
+
     try:
+        resolve_reference(args, progress=report)
         config = build_config(args)
     except (ValueError, KeyError) as exc:
         parser.error(str(exc))
 
     from core.pipeline import run
-
-    def report(fraction: float, message: str) -> None:
-        print(f"[{fraction * 100:5.1f}%] {message}", file=sys.stderr, flush=True)
 
     result = run(config, gtf=args.gtf, cpg_islands=args.cpg_islands, progress=report)
     print(result.get("output", args.output_dir))

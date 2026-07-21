@@ -13,7 +13,8 @@ name: Build and push MANGO image (GHCR)
 on:
   push:
     branches:
-      - cursor/mango-wdl-workflow-06d8
+      - main
+      - cursor/auto-reference-06d8
     tags:
       - "v*"
   workflow_dispatch:

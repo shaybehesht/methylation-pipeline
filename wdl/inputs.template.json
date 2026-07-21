@@ -1,5 +1,5 @@
 {
-  "__comment__": "MANGO trio DMR workflow inputs. Replace gs:// paths and the docker image. In a Terra workspace you can bind fields to a Data Table, e.g. \"this.proband_bam\".",
+  "__comment__": "MANGO trio DMR workflow inputs. Simplest setup: provide the 3 BAMs (+indexes), set assembly=hg38, pick a mode, and set docker. Leave reference_fasta/fai/gtf/cpg_islands OUT to auto-download the reference. In a Terra workspace you can bind File fields to a Data Table (e.g. \"this.aligned_nanopore_file\").",
 
   "mango_trio.proband_bam": "gs://your-workspace-bucket/proband.bam",
   "mango_trio.proband_bai": "gs://your-workspace-bucket/proband.bam.bai",
@@ -21,10 +21,8 @@
   "mango_trio.relative2_relationship": "father",
   "mango_trio.relative2_affection": "unaffected",
 
-  "mango_trio.reference_fasta": "gs://your-workspace-bucket/references/hg38.fa",
-  "mango_trio.reference_fai": "gs://your-workspace-bucket/references/hg38.fa.fai",
-  "mango_trio.gtf": "gs://your-workspace-bucket/references/gencode.v49.annotation.gtf",
-  "mango_trio.cpg_islands": "gs://your-workspace-bucket/references/cpgIslandExt.txt",
+  "__reference_comment__": "Auto-download: just set assembly. To use your own reference instead, add mango_trio.reference_fasta + mango_trio.reference_fai (+ mango_trio.gtf for targeted mode) with gs:// paths, which then override the download.",
+  "mango_trio.assembly": "hg38",
 
   "mango_trio.mode": "targeted",
   "mango_trio.chromosomes": [],

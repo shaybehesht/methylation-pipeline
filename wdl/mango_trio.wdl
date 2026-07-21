@@ -6,8 +6,12 @@ version 1.0
 # localizes automatically and writing DMR tables, an HTML report, and figures.
 #
 # Share it with the GREGoR consortium by publishing this descriptor on Dockstore
-# (see wdl/README.md). References are passed as explicit inputs so the task is
-# hermetic and needs no network.
+# (see wdl/README.md).
+#
+# References: either provide reference_fasta (+ reference_fai, and gtf for
+# targeted mode) explicitly for a fully hermetic run, OR leave them unset and
+# set `assembly` (hg38/hg19) so the task downloads and prepares the FASTA, GTF,
+# and CpG islands automatically (requires network egress from the task).
 
 workflow mango_trio {
   input {
@@ -34,11 +38,14 @@ workflow mango_trio {
     String? relative2_relationship
     String? relative2_affection
 
-    # --- Reference (pass the matching .fai; gtf is required for targeted mode) ---
-    File reference_fasta
-    File reference_fai
+    # --- Reference ---
+    # Provide reference_fasta (+ reference_fai; gtf required for targeted mode),
+    # OR leave all four unset and rely on `assembly` to auto-download them.
+    File? reference_fasta
+    File? reference_fai
     File? gtf
     File? cpg_islands
+    String assembly = "hg38"          # used to auto-download when reference_fasta is unset
 
     # --- Region scope ---
     String mode = "targeted"         # whole_genome | chromosomes | targeted
@@ -73,7 +80,7 @@ workflow mango_trio {
       relative2_relationship = relative2_relationship,
       relative2_affection = relative2_affection,
       reference_fasta = reference_fasta, reference_fai = reference_fai,
-      gtf = gtf, cpg_islands = cpg_islands,
+      gtf = gtf, cpg_islands = cpg_islands, assembly = assembly,
       mode = mode, chromosomes = chromosomes, genes = genes,
       phased_vcf = phased_vcf, modified_bases = modified_bases,
       combine_strands = combine_strands, threshold_overrides = threshold_overrides,
@@ -120,10 +127,11 @@ task run_mango {
     String? relative2_relationship
     String? relative2_affection
 
-    File reference_fasta
-    File reference_fai
+    File? reference_fasta
+    File? reference_fai
     File? gtf
     File? cpg_islands
+    String assembly
 
     String mode
     Array[String] chromosomes
@@ -145,15 +153,22 @@ task run_mango {
     set -euo pipefail
     mkdir -p refs bams out
 
-    # Stage inputs with the sibling-index / .fai names the tools expect.
-    ln -s "~{reference_fasta}" refs/reference.fa
-    ln -s "~{reference_fai}"   refs/reference.fa.fai
+    # Stage the BAMs with the sibling-index names the tools expect.
     ln -s "~{proband_bam}"     "bams/~{proband_label}.bam"
     ln -s "~{proband_bai}"     "bams/~{proband_label}.bam.bai"
     ln -s "~{relative1_bam}"   "bams/~{relative1_label}.bam"
     ln -s "~{relative1_bai}"   "bams/~{relative1_label}.bam.bai"
     ln -s "~{relative2_bam}"   "bams/~{relative2_label}.bam"
     ln -s "~{relative2_bai}"   "bams/~{relative2_label}.bam.bai"
+
+    # Reference: either the provided FASTA (+.fai) or auto-download via --assembly.
+    if [ -n "~{reference_fasta}" ]; then
+      ln -s "~{reference_fasta}" refs/reference.fa
+      ln -s "~{reference_fai}"   refs/reference.fa.fai
+      REF_ARG="--reference-fasta refs/reference.fa ~{"--gtf " + gtf} ~{"--cpg-islands " + cpg_islands}"
+    else
+      REF_ARG="--assembly ~{assembly} ~{"--gtf " + gtf} ~{"--cpg-islands " + cpg_islands}"
+    fi
 
     # WDL 1.0 has no sep() function, so build the multi-value flags in bash from
     # space-joined placeholder strings (the sep= placeholder option is 1.0-valid).
@@ -173,8 +188,7 @@ task run_mango {
       --relative2-sex ~{relative2_sex} \
       ~{"--relative2-relationship " + relative2_relationship} \
       ~{"--relative2-affection " + relative2_affection} \
-      --reference-fasta refs/reference.fa \
-      ~{"--gtf " + gtf} ~{"--cpg-islands " + cpg_islands} \
+      $REF_ARG \
       --mode ~{mode} \
       $CHROM_ARG $GENE_ARG \
       ~{"--phased-vcf " + phased_vcf} \

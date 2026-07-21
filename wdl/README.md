@@ -24,8 +24,9 @@ segment/targeted tables, `summary.json`, `report.html`, figures, and a
 
 - Three samples (proband + two relatives): each takes a `*_bam`, `*_bai`, `*_sex`
   (`F`/`M`), and optional `*_affection` / `*_relationship`.
-- `reference_fasta` **and** `reference_fai` (matching `.fai`), plus `gtf` (required
-  for `mode = targeted`) and optional `cpg_islands`.
+- Reference: either set `assembly` (`hg38`/`hg19`) to auto-download, or provide
+  `reference_fasta` + `reference_fai` (+ `gtf` for `mode = targeted`, optional
+  `cpg_islands`) to override.
 - `mode`: `targeted` (needs `genes`), `chromosomes` (needs `chromosomes`), or
   `whole_genome`.
 - `docker`: your published MANGO image (see below).
@@ -65,16 +66,22 @@ Then set `"mango_trio.docker": "<that image>"`. For a private Artifact Registry,
 make sure your Terra proxy group has read access; a public GHCR/Quay image needs
 no extra access.
 
-### 2. Stage a reference bundle in your workspace bucket
-Upload (once) an indexed FASTA plus GENCODE GTF and CpG islands to your bucket,
-or point at an existing AnVIL reference bundle:
+### 2. Reference — auto-download (default) or bring your own
+**Easiest:** leave `reference_fasta`/`reference_fai`/`gtf`/`cpg_islands` unset and
+set `assembly` to `hg38` (or `hg19`). The task downloads and prepares the matching
+FASTA, GENCODE GTF, and CpG islands automatically (needs network egress from the
+task, which Terra allows by default). No staging required.
+
+**Bring your own (fully hermetic):** stage an indexed FASTA plus GENCODE GTF and
+CpG islands once, then set the inputs to those `gs://` paths (they override the
+download):
 
 ```bash
 gsutil cp hg38.fa hg38.fa.fai gencode.v49.annotation.gtf cpgIslandExt.txt \
   gs://<your-workspace-bucket>/references/
 ```
 
-Update the `reference_*`, `gtf`, and `cpg_islands` inputs to those `gs://` paths.
+Then set `reference_fasta`, `reference_fai`, `gtf`, and `cpg_islands` accordingly.
 
 ### 3. Get your BAM `gs://` paths from the workspace
 Find the modBAMs (and their `.bai` indexes) in your GREGoR/AnVIL Data Table or
