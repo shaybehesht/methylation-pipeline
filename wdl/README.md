@@ -42,17 +42,25 @@ The workflow needs a container that has `mango-run` plus `modkit`/`samtools`.
 [`wdl/Dockerfile`](Dockerfile) builds exactly that (a minimal image; the app's
 optional viz extras are excluded so it is small and builds reliably).
 
-**Easiest (no cloud billing) — GitHub Actions -> GHCR.** This repo includes
-`.github/workflows/build-image.yml`, which builds the image and pushes it to
-GitHub Container Registry using the free built-in token. It runs automatically
-when the branch is pushed, or you can trigger it from the repo's **Actions** tab
-("Build and push MANGO image (GHCR)" -> **Run workflow**). After the first run,
-make the package public so Terra can pull it anonymously: GitHub -> your profile
--> **Packages** -> `mango` -> **Package settings** -> **Change visibility** ->
-**Public**. Then set:
+**Important:** Terra/Cromwell does **not** support `ghcr.io` for WDL execution
+(the job fails with "Registry ghcr.io is not supported"). Use **Docker Hub**
+(`docker.io`), which Terra supports and is free with no cloud billing.
+
+**GitHub Actions -> Docker Hub.** `.github/workflows/build-image.yml` builds the
+image and pushes it to Docker Hub when these two repo secrets are set
+(GitHub repo -> Settings -> Secrets and variables -> Actions):
+
+- `DOCKERHUB_USERNAME` - your Docker Hub username
+- `DOCKERHUB_TOKEN` - a Docker Hub access token (Docker Hub -> Account Settings
+  -> Personal access tokens -> Generate, read/write)
+
+Create a free Docker Hub account (no credit card) at https://hub.docker.com,
+add the secrets, then push to `main` (or use the **Actions** tab -> **Run
+workflow**). The image is pushed to `docker.io/<username>/mango:latest`
+(Docker Hub repos are public by default). Then set:
 
 ```json
-"mango_trio.docker": "ghcr.io/<your-github-username>/mango:latest"
+"mango_trio.docker": "docker.io/<your-dockerhub-username>/mango:latest"
 ```
 
 **Alternative — Google Artifact Registry** (needs a GCP project with billing):

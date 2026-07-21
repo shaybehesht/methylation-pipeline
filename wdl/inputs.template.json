@@ -32,7 +32,7 @@
   "mango_trio.combine_strands": true,
   "mango_trio.threshold_overrides": ["min_sites=5", "alpha=0.05"],
 
-  "mango_trio.docker": "ghcr.io/shaybehesht/mango:latest",
+  "mango_trio.docker": "docker.io/REPLACE_WITH_DOCKERHUB_USERNAME/mango:latest",
   "mango_trio.cpu": 4,
   "mango_trio.memory_gb": 16,
   "mango_trio.disk_gb": 100,

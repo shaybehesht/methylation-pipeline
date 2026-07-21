@@ -1,20 +1,20 @@
-name: Build and push MANGO image (GHCR)
+name: Build and push MANGO image
 
-# Builds the MANGO analysis image (wdl/Dockerfile: mango-run + modkit +
-# samtools) and pushes it to GitHub Container Registry. This needs no cloud
-# billing — it uses the free GITHUB_TOKEN — so it is the easiest way to get an
-# image that Terra/Cromwell can pull for the WDL workflow.
+# Builds the MANGO analysis image (wdl/Dockerfile: mango-run + modkit + samtools)
+# and pushes it to registries usable by Terra/Cromwell.
 #
-# After the first successful run, make the package public so Terra can pull it
-# anonymously: GitHub -> your profile -> Packages -> "mango" -> Package settings
-# -> Change visibility -> Public. Then set the WDL input:
-#   "mango_trio.docker": "ghcr.io/<owner>/mango:latest"
+# Terra's Cromwell does NOT support ghcr.io for WDL execution, so the image is
+# also pushed to Docker Hub (docker.io), which Terra supports. Add two repo
+# secrets to enable the Docker Hub push:
+#   DOCKERHUB_USERNAME  - your Docker Hub username
+#   DOCKERHUB_TOKEN     - a Docker Hub access token (read/write)
+# Then set the WDL input:
+#   "mango_trio.docker": "docker.io/<DOCKERHUB_USERNAME>/mango:latest"
 
 on:
   push:
     branches:
       - main
-      - cursor/auto-reference-06d8
     tags:
       - "v*"
   workflow_dispatch:
@@ -25,6 +25,8 @@ jobs:
     permissions:
       contents: read
       packages: write
+    env:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
     steps:
       - name: Free extra disk space
         run: |
@@ -36,9 +38,17 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Compute lowercase image name
-        id: image
-        run: echo "name=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/mango" >> "$GITHUB_OUTPUT"
+      - name: Compute image tags
+        id: names
+        run: |
+          GHCR="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/mango"
+          TAGS="$GHCR:latest"$'\n'"$GHCR:${GITHUB_SHA}"
+          if [ -n "${DOCKERHUB_USERNAME}" ]; then
+            DH="docker.io/${DOCKERHUB_USERNAME}/mango"
+            TAGS="$TAGS"$'\n'"$DH:latest"$'\n'"$DH:${GITHUB_SHA}"
+          fi
+          { echo "tags<<EOF"; echo "$TAGS"; echo "EOF"; } >> "$GITHUB_OUTPUT"
+          echo "Will push:"; echo "$TAGS"
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -46,6 +56,13 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Log in to Docker Hub
+        if: ${{ env.DOCKERHUB_USERNAME != '' }}
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -56,11 +73,14 @@ jobs:
           context: .
           file: ./wdl/Dockerfile
           push: true
-          tags: |
-            ${{ steps.image.outputs.name }}:latest
-            ${{ steps.image.outputs.name }}:${{ github.sha }}
+          tags: ${{ steps.names.outputs.tags }}
 
       - name: Summary
         run: |
-          echo "Pushed ${{ steps.image.outputs.name }}:latest" >> "$GITHUB_STEP_SUMMARY"
-          echo "Use it in wdl/inputs.template.json as mango_trio.docker" >> "$GITHUB_STEP_SUMMARY"
+          echo "Pushed tags:" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "${{ steps.names.outputs.tags }}" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          if [ -z "${DOCKERHUB_USERNAME}" ]; then
+            echo "NOTE: Docker Hub secrets not set — only GHCR was pushed (GHCR is NOT usable by Terra/Cromwell)." >> "$GITHUB_STEP_SUMMARY"
+          fi
