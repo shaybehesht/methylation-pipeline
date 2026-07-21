@@ -22,7 +22,7 @@ Open <http://localhost:8501>. The host data directory is mounted read-only at
 `/data` (browse it in Setup); the reference cache is mounted read-write at
 `/reference-cache`; results are written under `./runs`.
 
-The image includes modkit, samtools/htslib, methylartist, modbamtools, and
+The image includes modkit, samtools/htslib, methylartist, and
 Python. Reference FASTAs and matching GENCODE/CpG-island annotations are **not**
 baked into the image; they are downloaded on demand into the mounted reference
 cache so the image stays small and both assemblies are not duplicated. Only the

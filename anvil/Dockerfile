@@ -6,9 +6,9 @@
 # Jupyter Launcher and is served at ``.../proxy/mango/`` via the
 # ``jupyter_serverproxy_servers`` entry point declared in pyproject.toml.
 #
-# Note: modbamtools is installed via pip (it is not a conda package on the
-# configured channels for linux-64), and the source is copied before the
-# editable install so the Streamlit pages and console/proxy entry points resolve.
+# Note: the source is copied before the editable install so the Streamlit pages
+# and console/proxy entry points resolve. modbamtools is not included (it is not
+# a conda package here and its PyPI build caps at Python 3.10; it is unused).
 #
 # Build from the repository root so the whole project is in the build context:
 #   docker build -f anvil/Dockerfile -t <registry>/mango-anvil:latest .
@@ -29,10 +29,9 @@ COPY --chown=$MAMBA_USER:$MAMBA_USER . /app
 WORKDIR /app
 
 # Editable install (source present) registers the mango console/proxy entry
-# points and keeps app/pages/ next to streamlit_app.py; modbamtools via pip.
+# points and keeps app/pages/ next to streamlit_app.py.
 ARG MAMBA_DOCKERFILE_ACTIVATE=1
-RUN pip install --no-cache-dir -e . \
-    && pip install --no-cache-dir modbamtools
+RUN pip install --no-cache-dir -e .
 
 ENV PATH="/opt/conda/bin:${PATH}" \
     PYTHONPATH=/app \
