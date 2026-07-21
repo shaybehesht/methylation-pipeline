@@ -38,18 +38,31 @@ These steps require your credentials/accounts and cannot be done from the repo:
 
 ### 1. Build and publish the Docker image
 The workflow needs a container that has `mango-run` plus `modkit`/`samtools`.
-The repo root `Dockerfile` already builds exactly that. From the repo root:
+The repo root `Dockerfile` already builds exactly that.
 
-```bash
-# Pick a registry you control that Terra can pull from
-IMG=<REGION>-docker.pkg.dev/<YOUR_GCP_PROJECT>/<REPO>/mango:latest
-docker build -t "$IMG" .
-docker push "$IMG"
+**Easiest (no cloud billing) — GitHub Actions -> GHCR.** This repo includes
+`.github/workflows/build-image.yml`, which builds the image and pushes it to
+GitHub Container Registry using the free built-in token. It runs automatically
+when the branch is pushed, or you can trigger it from the repo's **Actions** tab
+("Build and push MANGO image (GHCR)" -> **Run workflow**). After the first run,
+make the package public so Terra can pull it anonymously: GitHub -> your profile
+-> **Packages** -> `mango` -> **Package settings** -> **Change visibility** ->
+**Public**. Then set:
+
+```json
+"mango_trio.docker": "ghcr.io/<your-github-username>/mango:latest"
 ```
 
-Then set `"mango_trio.docker": "<that image>"` in your inputs JSON. (A public
-Quay.io/GHCR image works too; for a private Artifact Registry, make sure your
-Terra proxy group has read access.)
+**Alternative — Google Artifact Registry** (needs a GCP project with billing):
+
+```bash
+IMG=<REGION>-docker.pkg.dev/<YOUR_GCP_PROJECT>/<REPO>/mango:latest
+gcloud builds submit --tag "$IMG" .   # or: docker build -t "$IMG" . && docker push "$IMG"
+```
+
+Then set `"mango_trio.docker": "<that image>"`. For a private Artifact Registry,
+make sure your Terra proxy group has read access; a public GHCR/Quay image needs
+no extra access.
 
 ### 2. Stage a reference bundle in your workspace bucket
 Upload (once) an indexed FASTA plus GENCODE GTF and CpG islands to your bucket,
