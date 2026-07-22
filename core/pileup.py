@@ -18,6 +18,9 @@ from pathlib import Path
 import pandas as pd
 import pysam
 
+from core.bedmethyl import pileup_modified_bases, validate_bedmethyl
+from core.subprocess_util import run_checked
+
 
 def build_command(
     bam: str,
@@ -132,29 +135,28 @@ def run_pileup(
 
     output_path = Path(output)
     raw_path = output_path.with_suffix(output_path.suffix + ".raw.bed")
-    command = build_command(
-        bam, str(raw_path), reference,
-        filter_threshold=filter_threshold, region=region,
-        combine_strands=combine_strands, modified_bases=modified_bases,
-        threads=threads,
-    )
-    if include_bed:
-        command.extend(["--include-bed", include_bed])
-    completed = subprocess.run(command, text=True, capture_output=True, check=False)
-    if log is not None:
-        if completed.stdout:
-            log.write(completed.stdout)
-        if completed.stderr:
-            log.write(completed.stderr)
-    if completed.returncode:
-        raw_path.unlink(missing_ok=True)
-        detail = (completed.stderr or completed.stdout or "").strip()
-        tail = "\n".join(detail.splitlines()[-20:])
-        raise RuntimeError(
-            f"modkit pileup failed (exit {completed.returncode}):\n{tail}"
+    tabulated = pileup_modified_bases(modified_bases)
+    with tempfile.TemporaryDirectory() as scratch:
+        log_path = Path(scratch) / "modkit_pileup.log"
+        command = build_command(
+            bam, str(raw_path), reference,
+            filter_threshold=filter_threshold, region=region,
+            combine_strands=combine_strands, modified_bases=tabulated,
+            threads=threads, log_filepath=str(log_path),
         )
+        if include_bed:
+            command.extend(["--include-bed", include_bed])
+        run_checked(command, log=log, log_filepath=log_path, tool="modkit pileup")
     try:
         fold_and_index(raw_path, output_path)
+        n_rows, n_invalid, examples = validate_bedmethyl(output_path)
+        if n_invalid:
+            output_path.unlink(missing_ok=True)
+            detail = "\n".join(examples[:5])
+            raise RuntimeError(
+                f"bedMethyl failed validation ({n_invalid}/{n_rows} bad rows) in {output_path}.\n"
+                f"Examples:\n{detail}"
+            )
     finally:
         raw_path.unlink(missing_ok=True)
     return output_path

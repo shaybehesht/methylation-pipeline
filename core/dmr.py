@@ -1,14 +1,17 @@
 """modkit pairwise DMR wrapper and normalized table reader."""
 from __future__ import annotations
 
-import subprocess
 import re
+import tempfile
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pysam
 from scipy.stats import fisher_exact
+
+from core.bedmethyl import bedmethyl_has_rows, validate_bedmethyl
+from core.subprocess_util import run_checked
 
 
 def build_command(
@@ -45,21 +48,52 @@ def build_command(
     return command
 
 
+def _preflight(left: str, right: str) -> None:
+    for label, path in (("sample A", left), ("sample B", right)):
+        if not bedmethyl_has_rows(path):
+            raise RuntimeError(f"{label} bedMethyl is empty: {path}")
+        n_rows, n_invalid, examples = validate_bedmethyl(path)
+        if n_invalid:
+            hint = (
+                "Counts do not sum (valid_coverage != N_mod + N_canonical + N_other). "
+                "This usually means 5hmC was not tabulated during pileup; re-run with "
+                "``--modified-base 5hmC`` or use a newer MANGO image."
+            )
+            detail = "\n".join(examples[:5])
+            raise RuntimeError(
+                f"{label} bedMethyl has {n_invalid}/{n_rows} invalid row(s) in {path}.\n"
+                f"{hint}\nExamples:\n{detail}"
+            )
+
+
+def _write_empty_segments(segment_path: Path) -> None:
+    segment_path.parent.mkdir(parents=True, exist_ok=True)
+    segment_path.write_text(
+        "chrom\tchrom_start\tchrom_end\tname\tscore\tnum_sites\teffect_size\n",
+        encoding="utf-8",
+    )
+
+
 def run_pair(left: str, right: str, output: str, reference: str, log=None, **kwargs) -> Path:
-    command = build_command(left, right, output, reference, **kwargs)
-    completed = subprocess.run(command, text=True, capture_output=True, check=False)
-    if log is not None:
-        if completed.stdout:
-            log.write(completed.stdout)
-        if completed.stderr:
-            log.write(completed.stderr)
-    if completed.returncode:
-        detail = (completed.stderr or completed.stdout or "").strip()
-        tail = "\n".join(detail.splitlines()[-20:])
-        raise RuntimeError(
-            f"modkit dmr pair failed (exit {completed.returncode}):\n{tail}"
+    segment = kwargs.get("segment")
+    segment_path = Path(segment) if segment else None
+    if segment_path is not None and (
+        not bedmethyl_has_rows(left) or not bedmethyl_has_rows(right)
+    ):
+        _write_empty_segments(segment_path)
+        Path(output).parent.mkdir(parents=True, exist_ok=True)
+        Path(output).write_text("", encoding="utf-8")
+        return segment_path
+
+    _preflight(left, right)
+
+    with tempfile.TemporaryDirectory() as scratch:
+        log_path = Path(scratch) / "modkit_dmr.log"
+        command = build_command(
+            left, right, output, reference, log_filepath=str(log_path), **kwargs
         )
-    return Path(kwargs.get("segment") or output)
+        run_checked(command, log=log, log_filepath=log_path, tool="modkit dmr pair")
+    return Path(segment or output)
 
 
 def read_segments(path: str | Path) -> pd.DataFrame:

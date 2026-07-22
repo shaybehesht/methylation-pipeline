@@ -370,6 +370,10 @@ def run(
     log_path = output / "pipeline.log"
     notify(0.02, "Starting analysis")
     with log_path.open("w", encoding="utf-8") as log:
+        from core.bam_index import ensure_index
+
+        for sample in config.samples:
+            ensure_index(sample.bam_path, log)
         # PacBio HiFi (and other) modBAMs without an MN tag cannot use modkit
         # --combine-strands; auto-disable it so those inputs "just work".
         if config.combine_strands:
