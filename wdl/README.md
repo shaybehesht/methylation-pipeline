@@ -8,6 +8,38 @@ the GREGoR consortium through Dockstore. (For interactive, plot-driven analysis
 of a single trio, use the MANGO app route — the interactive AnVIL Cloud
 Environment integration — instead.)
 
+## For consortium users (quickstart)
+
+If someone has already published this workflow, you don't build or install
+anything — you run it in **your own** Terra workspace against **your own** data.
+
+1. **Import it:** Workflows -> *Find a Workflow* -> *Dockstore.org* -> search
+   `mango_trio` -> import into your workspace.
+2. **Choose** "Run workflow(s) with inputs defined by file paths" (simplest for
+   one trio), so it's a single run.
+3. **Fill in only your data** (leave everything else at its default):
+
+   | Input | What to set |
+   |-------|-------------|
+   | `proband_bam`, `proband_bai` | your proband's `gs://` modBAM + index |
+   | `relative1_bam/bai`, `relative2_bam/bai` | the two relatives' `gs://` modBAM + index |
+   | `proband_sex`, `relative1_sex`, `relative2_sex` | `"F"` or `"M"` |
+   | `mode` | `"targeted"` (+ `genes`), `"chromosomes"` (+ `chromosomes`), or `"whole_genome"` |
+   | `genes` / `chromosomes` | e.g. `["MECP2","SNRPN"]` / `["chr11"]` |
+   | `disk_gb` | size for your BAMs (WGS long-read: `500`+) |
+   | `preemptible` | `0` to avoid restarts |
+
+4. **Leave these at their defaults:** `docker` (public image), `assembly`
+   (`hg38`), and the reference/`gtf`/`cpg_islands` fields (blank -> auto-download).
+   ONT vs PacBio is auto-detected (no toggle needed).
+5. **Optional metadata:** `*_label`, `*_affection`, `*_relationship` improve the
+   report but aren't required.
+6. **Launch.** Outputs (`report.html`, figures, tables, `mango_run.tar.gz`) land
+   in your workspace bucket under the submission's `call-run_mango/` folder.
+
+Requirements on your side: your own Terra billing project and access to your
+data. Runs bill to you. Don't mix sequencing platforms within one trio.
+
 ## What it produces
 
 `out/proband_specific_DMRs.tsv` (+`.bed` when candidates exist), per-comparison
