@@ -29,5 +29,9 @@ WORKDIR /app
 ARG MAMBA_DOCKERFILE_ACTIVATE=1
 RUN pip install --no-cache-dir .
 
-ENV MPLBACKEND=Agg
+# Put the conda base env on PATH explicitly. Cromwell/Terra runs its own command
+# script and bypasses the micromamba entrypoint that would otherwise activate the
+# env, so without this mango-run/modkit/samtools are "command not found".
+ENV PATH="/opt/conda/bin:${PATH}" \
+    MPLBACKEND=Agg
 CMD ["mango-run", "--help"]
