@@ -3,11 +3,17 @@ channels:
   - conda-forge
   - bioconda
 dependencies:
-  - python>=3.11
+  # Pin a stable Python: the very latest (3.14) lacks prebuilt wheels for some
+  # compiled deps, forcing source builds (e.g. cryptography -> Rust/OpenSSL).
+  - python=3.12
   # Bioconda publishes modkit as "ont-modkit" (provides the `modkit` binary).
   - ont-modkit
   - samtools
   - htslib
+  # Provide the compiled Python deps as conda binaries so pip never builds them
+  # from source (cryptography needs Rust/OpenSSL; pysam needs htslib).
+  - pysam
+  - cryptography
   - pip
   - pip:
       - -e .
