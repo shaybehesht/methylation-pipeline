@@ -47,9 +47,18 @@ def build_command(
 
 def run_pair(left: str, right: str, output: str, reference: str, log=None, **kwargs) -> Path:
     command = build_command(left, right, output, reference, **kwargs)
-    completed = subprocess.run(command, text=True, stdout=log, stderr=log, check=False)
+    completed = subprocess.run(command, text=True, capture_output=True, check=False)
+    if log is not None:
+        if completed.stdout:
+            log.write(completed.stdout)
+        if completed.stderr:
+            log.write(completed.stderr)
     if completed.returncode:
-        raise RuntimeError(f"modkit dmr pair failed with exit code {completed.returncode}")
+        detail = (completed.stderr or completed.stdout or "").strip()
+        tail = "\n".join(detail.splitlines()[-20:])
+        raise RuntimeError(
+            f"modkit dmr pair failed (exit {completed.returncode}):\n{tail}"
+        )
     return Path(kwargs.get("segment") or output)
 
 

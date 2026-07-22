@@ -140,10 +140,19 @@ def run_pileup(
     )
     if include_bed:
         command.extend(["--include-bed", include_bed])
-    completed = subprocess.run(command, text=True, stdout=log, stderr=log, check=False)
+    completed = subprocess.run(command, text=True, capture_output=True, check=False)
+    if log is not None:
+        if completed.stdout:
+            log.write(completed.stdout)
+        if completed.stderr:
+            log.write(completed.stderr)
     if completed.returncode:
         raw_path.unlink(missing_ok=True)
-        raise RuntimeError(f"modkit pileup failed with exit code {completed.returncode}")
+        detail = (completed.stderr or completed.stdout or "").strip()
+        tail = "\n".join(detail.splitlines()[-20:])
+        raise RuntimeError(
+            f"modkit pileup failed (exit {completed.returncode}):\n{tail}"
+        )
     try:
         fold_and_index(raw_path, output_path)
     finally:
