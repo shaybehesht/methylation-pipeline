@@ -97,6 +97,21 @@ def test_run_pair_preflight_reports_invalid_rows(tmp_path: Path):
         run_pair(str(left), str(right), str(tmp_path / "out.bed"), "ref.fa")
 
 
+def test_ensure_index_skips_existing_bai(tmp_path: Path, monkeypatch):
+    bam = tmp_path / "sample.bam"
+    bam.write_bytes(b"BAM")
+    index = tmp_path / "sample.bam.bai"
+    index.write_bytes(b"BAI")
+    calls: list[list[str]] = []
+
+    def fake_run(command, check):
+        calls.append(command)
+
+    monkeypatch.setattr("core.bam_index.subprocess.run", fake_run)
+    ensure_index(str(bam))
+    assert calls == []
+
+
 def test_ensure_index_creates_missing_bai(tmp_path: Path, monkeypatch):
     bam = tmp_path / "sample.bam"
     bam.write_bytes(b"BAM")
@@ -104,7 +119,7 @@ def test_ensure_index_creates_missing_bai(tmp_path: Path, monkeypatch):
 
     def fake_run(command, check):
         calls.append(command)
-        Path(command[2]).write_bytes(b"BAI")
+        Path(command[3]).write_bytes(b"BAI")
 
     monkeypatch.setattr("core.bam_index.subprocess.run", fake_run)
     ensure_index(str(bam))

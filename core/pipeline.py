@@ -62,17 +62,29 @@ def _one_chromosome_fasta(
 ) -> Path:
     """Write and index a single-contig FASTA for modkit DMR."""
     header_name = header or ref_contig
-    if dest.exists():
+    if dest.exists() and dest.stat().st_size > len(header_name) + 32:
         return dest
-    sequence = pysam.faidx(reference, ref_contig)
+    dest.unlink(missing_ok=True)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    if shutil.which("samtools"):
+        with dest.open("w") as handle:
+            subprocess.run(
+                ["samtools", "faidx", reference, ref_contig],
+                stdout=handle,
+                check=True,
+            )
+    else:
+        dest.write_text(pysam.faidx(reference, ref_contig), encoding="utf-8")
+    lines = dest.read_text(encoding="utf-8").splitlines()
+    if len(lines) < 2 or not any(line.strip() and not line.startswith(">") for line in lines[1:]):
+        raise RuntimeError(
+            f"Could not extract {ref_contig!r} from {reference} "
+            f"(empty FASTA written to {dest}). "
+            f"Check that the reference matches your BAM contig naming."
+        )
     if header_name != ref_contig:
-        lines = sequence.splitlines()
-        if lines:
-            lines[0] = f">{header_name}"
-        sequence = "\n".join(lines)
-        if sequence and not sequence.endswith("\n"):
-            sequence += "\n"
-    dest.write_text(sequence, encoding="utf-8")
+        lines[0] = f">{header_name}"
+        dest.write_text("\n".join(lines) + "\n", encoding="utf-8")
     pysam.faidx(str(dest))
     return dest
 
