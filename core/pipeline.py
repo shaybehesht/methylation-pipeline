@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import gzip
 import json
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -25,7 +26,8 @@ import pysam
 
 from core.analysis import feasibility
 from core.annotations import panel_regions, write_bed3
-from core.chromosomes import dmr_reference_contig, resolve_reference_contig
+from core.bedmethyl import bedmethyl_has_rows
+from core.chromosomes import dmr_reference_contig, resolve_bam_contig, resolve_reference_contig
 from core.config import Sex, TrioConfig
 from core.dmr import read_segments, run_pair
 from core.pileup import run_pileup
@@ -114,17 +116,31 @@ def _run_segmentation(config: TrioConfig, output: Path, gtf: str | None, log, no
 
     per_sample_parts: dict[str, list[Path]] = {sample.label: [] for sample in samples}
     bam_paths = [sample.bam_path for sample in samples]
+    modkit_threads = max(1, min(int(os.environ.get("MANGO_THREADS", os.cpu_count() or 4)), 8))
     for index, chrom in enumerate(chroms):
         notify(0.05 + 0.5 * index / total_units, f"Pileup + DMR: {chrom}")
         ref_contig = resolve_reference_contig(reference, chrom, bam_paths)
+        bam_contig = resolve_bam_contig(chrom, bam_paths)
+        pileup_region = bam_contig if bam_contig != ref_contig else ref_contig
         chrom_pileups: dict[str, Path] = {}
         for sample in samples:
             part = split / f"{sample.label}.{chrom}.bed.gz"
             if not part.exists():
+                notify(
+                    0.05 + 0.5 * (index + 0.3 * (samples.index(sample) + 1) / len(samples)) / total_units,
+                    f"Pileup {chrom} ({pileup_region}): {sample.label}",
+                )
                 run_pileup(
                     sample.bam_path, str(part), reference,
                     filter_threshold=float(config.thresholds["filter_threshold"]),
-                    region=ref_contig, combine_strands=combine, modified_bases=modified, log=log,
+                    region=pileup_region, combine_strands=combine, modified_bases=modified,
+                    log=log, threads=modkit_threads,
+                )
+            if not bedmethyl_has_rows(part):
+                raise RuntimeError(
+                    f"Pileup for {sample.label} on {chrom} ({pileup_region}) is empty. "
+                    f"Check that the modBAM contig names match the reference "
+                    f"(BAM uses {bam_contig!r}, reference uses {ref_contig!r})."
                 )
             chrom_pileups[sample.label] = part
             per_sample_parts[sample.label].append(part)

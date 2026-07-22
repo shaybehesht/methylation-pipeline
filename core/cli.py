@@ -203,7 +203,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     def report(fraction: float, message: str) -> None:
-        print(f"[{fraction * 100:5.1f}%] {message}", file=sys.stderr, flush=True)
+        line = f"[{fraction * 100:5.1f}%] {message}"
+        print(line, file=sys.stderr, flush=True)
+        print(line, flush=True)
 
     try:
         resolve_reference(args, progress=report)

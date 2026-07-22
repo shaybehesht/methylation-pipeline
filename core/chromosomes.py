@@ -14,6 +14,23 @@ def _chrom_variants(chrom: str) -> list[str]:
     return list(dict.fromkeys([chrom, stripped, f"chr{stripped}"]))
 
 
+def resolve_bam_contig(chrom: str, bam_paths: list[str]) -> str:
+    """Return the contig name used in the modBAM header for ``chrom``."""
+    for path in bam_paths:
+        try:
+            with pysam.AlignmentFile(path, "rb", check_sq=False) as bam:
+                refs = set(bam.references)
+        except (OSError, ValueError):
+            continue
+        for candidate in _chrom_variants(chrom):
+            if candidate in refs:
+                return candidate
+    raise ValueError(
+        f"Chromosome {chrom!r} was not found in the modBAM headers "
+        f"(tried {_chrom_variants(chrom)})."
+    )
+
+
 def resolve_reference_contig(reference: str, chrom: str, bam_paths: list[str] | None = None) -> str:
     """Return the contig name present in ``reference`` for a logical chromosome."""
     ref_contigs = fasta_contigs(reference)

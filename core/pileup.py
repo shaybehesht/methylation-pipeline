@@ -18,7 +18,7 @@ from pathlib import Path
 import pandas as pd
 import pysam
 
-from core.bedmethyl import pileup_modified_bases, validate_bedmethyl
+from core.bedmethyl import bedmethyl_has_rows, pileup_modified_bases, validate_bedmethyl
 from core.subprocess_util import run_checked
 
 
@@ -32,6 +32,8 @@ def build_command(
     combine_strands: bool = True,
     modified_bases: tuple[str, ...] = ("5mC",),
     threads: int | None = None,
+    interval_size: int | None = None,
+    chunk_size: int | None = None,
     suppress_progress: bool = True,
     log_filepath: str | None = None,
 ) -> list[str]:
@@ -48,6 +50,10 @@ def build_command(
     command.extend(["--filter-threshold", str(filter_threshold)])
     if threads:
         command.extend(["--threads", str(threads)])
+    if interval_size:
+        command.extend(["--interval-size", str(interval_size)])
+    if chunk_size:
+        command.extend(["--chunk-size", str(chunk_size)])
     if suppress_progress:
         command.append("--suppress-progress")
     if log_filepath:
@@ -136,13 +142,17 @@ def run_pileup(
     output_path = Path(output)
     raw_path = output_path.with_suffix(output_path.suffix + ".raw.bed")
     tabulated = pileup_modified_bases(modified_bases)
+    modkit_threads = threads or 4
     with tempfile.TemporaryDirectory() as scratch:
         log_path = Path(scratch) / "modkit_pileup.log"
         command = build_command(
             bam, str(raw_path), reference,
             filter_threshold=filter_threshold, region=region,
             combine_strands=combine_strands, modified_bases=tabulated,
-            threads=threads, log_filepath=str(log_path),
+            threads=modkit_threads,
+            interval_size=100_000,
+            chunk_size=max(2, modkit_threads // 2),
+            log_filepath=str(log_path),
         )
         if include_bed:
             command.extend(["--include-bed", include_bed])

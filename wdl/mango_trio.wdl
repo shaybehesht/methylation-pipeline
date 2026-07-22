@@ -189,6 +189,10 @@ task run_mango {
     on_fail() {
       ec=$?
       echo "mango-run failed (exit ${ec})" >&2
+      if [ -f out/run.log ]; then
+        echo "=== tail out/run.log ===" >&2
+        tail -n 80 out/run.log >&2
+      fi
       if [ -f out/pipeline.log ]; then
         echo "=== tail out/pipeline.log ===" >&2
         tail -n 80 out/pipeline.log >&2
@@ -215,7 +219,7 @@ task run_mango {
       $MOD_ARGS \
       ~{if combine_strands then "" else "--no-combine-strands"} \
       $THRESH_ARGS \
-      --output-dir out
+      --output-dir out 2>&1 | tee out/run.log
 
     tar -czf mango_run.tar.gz -C out .
   >>>

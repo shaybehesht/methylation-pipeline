@@ -2,7 +2,12 @@ from pathlib import Path
 
 import pytest
 
-from core.chromosomes import dmr_reference_contig, pileup_contig_name, resolve_reference_contig
+from core.chromosomes import (
+    dmr_reference_contig,
+    pileup_contig_name,
+    resolve_bam_contig,
+    resolve_reference_contig,
+)
 
 
 def test_pileup_contig_name_reads_first_data_row(tmp_path: Path):
@@ -16,6 +21,18 @@ def test_resolve_reference_contig_prefers_chr_prefix(tmp_path: Path):
     fasta.write_text(">chr14\nACGT\n", encoding="utf-8")
     assert resolve_reference_contig(str(fasta), "chr14") == "chr14"
     assert resolve_reference_contig(str(fasta), "14") == "chr14"
+
+
+def test_resolve_bam_contig_uses_bam_header(tmp_path: Path):
+    bam = tmp_path / "sample.bam"
+    bam.write_bytes(b"")
+    # pysam can't open empty bam; use a minimal header via write in test with monkeypatch
+    import pysam
+
+    header = {"HD": {"VN": "1.6"}, "SQ": [{"LN": 100, "SN": "14"}]}
+    with pysam.AlignmentFile(str(bam), "wb", header=pysam.AlignmentHeader.from_dict(header)) as out:
+        pass
+    assert resolve_bam_contig("chr14", [str(bam)]) == "14"
 
 
 def test_dmr_reference_contig_renames_fasta_header_to_match_pileup(tmp_path: Path):
