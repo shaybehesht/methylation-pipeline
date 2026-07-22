@@ -5,12 +5,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
     && rm -rf /var/lib/apt/lists/*
 USER $MAMBA_USER
 
-COPY --chown=$MAMBA_USER:$MAMBA_USER environment.yml pyproject.toml /app/
+# Copy the full source before installing so the `pip install -e .` inside
+# environment.yml can discover the app/ and core/ packages.
+COPY --chown=$MAMBA_USER:$MAMBA_USER . /app
 WORKDIR /app
 RUN micromamba install -y -n base -f environment.yml \
     && micromamba clean --all --yes
 
-COPY --chown=$MAMBA_USER:$MAMBA_USER . /app
 USER $MAMBA_USER
 # Reference FASTA and matching GENCODE/CpG annotations are downloaded once at
 # runtime into the host-mounted cache rather than baked into the image.
