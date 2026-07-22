@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 
 import pytest
 
@@ -103,8 +104,29 @@ def test_ensure_index_creates_missing_bai(tmp_path: Path, monkeypatch):
 
     def fake_run(command, check):
         calls.append(command)
-        Path(f"{bam}.bai").write_bytes(b"BAI")
+        Path(command[2]).write_bytes(b"BAI")
 
     monkeypatch.setattr("core.bam_index.subprocess.run", fake_run)
     ensure_index(str(bam))
-    assert calls == [["samtools", "index", str(bam)]]
+    assert calls == [["samtools", "index", str(bam), str(tmp_path / "sample.bam.bai")]]
+
+
+def test_ensure_index_skips_stale_symlink(tmp_path: Path, monkeypatch):
+    bam = tmp_path / "sample.bam"
+    target = tmp_path / "localized.bam"
+    target.write_bytes(b"BAM2")
+    bam.symlink_to(target)
+    linked = tmp_path / "sample.bam.bai"
+    old_bai = tmp_path / "localized.bam.bai"
+    old_bai.write_bytes(b"OLD")
+    linked.symlink_to(old_bai)
+    os.utime(old_bai, (1, 1))
+    os.utime(target, (2, 2))
+    calls: list[list[str]] = []
+
+    def fake_run(command, check):
+        calls.append(command)
+
+    monkeypatch.setattr("core.bam_index.subprocess.run", fake_run)
+    ensure_index(str(bam))
+    assert calls == []

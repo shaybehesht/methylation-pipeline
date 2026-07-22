@@ -61,7 +61,7 @@ workflow mango_trio {
     # --- Runtime ---
     String docker = "docker.io/shaghayeghb/mango:latest"
     Int cpu = 4
-    Int memory_gb = 16
+    Int memory_gb = 32
     Int disk_gb = 100
     Int preemptible = 1
   }
@@ -185,6 +185,17 @@ task run_mango {
     while read -r _mb; do [ -n "$_mb" ] && MOD_ARGS="$MOD_ARGS --modified-base $_mb"; done < ~{write_lines(modified_bases)}
     THRESH_ARGS=""
     while read -r _th; do [ -n "$_th" ] && THRESH_ARGS="$THRESH_ARGS --set-threshold $_th"; done < ~{write_lines(threshold_overrides)}
+
+    on_fail() {
+      ec=$?
+      echo "mango-run failed (exit ${ec})" >&2
+      if [ -f out/pipeline.log ]; then
+        echo "=== tail out/pipeline.log ===" >&2
+        tail -n 80 out/pipeline.log >&2
+      fi
+      exit "${ec}"
+    }
+    trap on_fail ERR
 
     mango-run \
       --proband-bam "bams/~{proband_label}.bam" --proband-label "~{proband_label}" \

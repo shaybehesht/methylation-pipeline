@@ -213,7 +213,12 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     from core.pipeline import run
 
-    result = run(config, gtf=args.gtf, cpg_islands=args.cpg_islands, progress=report)
+    try:
+        result = run(config, gtf=args.gtf, cpg_islands=args.cpg_islands, progress=report)
+    except Exception:
+        import traceback
+        traceback.print_exc(file=sys.stderr)
+        raise
     print(result.get("output", args.output_dir))
     return 0
 
