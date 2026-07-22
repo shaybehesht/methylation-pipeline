@@ -20,11 +20,29 @@ else
   exit 1
 fi
 
+# Apple Silicon: several bioconda tools ship only osx-64 builds, so build the
+# env under osx-64 (Rosetta). This is the reliable cross-tool choice on M-series.
+APPLE_SILICON=0
+if [[ "$(uname -s)" == "Darwin" && "$(uname -m)" == "arm64" ]]; then
+  APPLE_SILICON=1
+  export CONDA_SUBDIR=osx-64
+  echo "== Apple Silicon detected: building '$ENV_NAME' as osx-64 (Rosetta) =="
+  if ! pgrep -q oahd 2>/dev/null; then
+    echo "   If creation fails to launch tools, install Rosetta once:"
+    echo "     softwareupdate --install-rosetta --agree-to-license"
+  fi
+fi
+
 echo "== Creating/updating env '$ENV_NAME' from environment.yml (using $CONDA) =="
 if $CONDA env list | awk '{print $1}' | grep -qx "$ENV_NAME"; then
   $CONDA env update -n "$ENV_NAME" -f "$here/environment.yml"
 else
   $CONDA env create -n "$ENV_NAME" -f "$here/environment.yml"
+fi
+
+if [[ "$APPLE_SILICON" -eq 1 ]]; then
+  # Pin the env to osx-64 so later `pip`/`conda install` stay consistent.
+  $CONDA run -n "$ENV_NAME" conda config --env --set subdir osx-64 || true
 fi
 
 echo

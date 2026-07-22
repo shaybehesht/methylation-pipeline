@@ -4,13 +4,14 @@ channels:
   - bioconda
 dependencies:
   - python>=3.11
-  # Bioconda publishes modkit as "ont-modkit" (provides the `modkit` binary and
-  # includes an osx-arm64/Apple Silicon build).
+  # Bioconda publishes modkit as "ont-modkit" (provides the `modkit` binary).
   - ont-modkit
   - samtools
   - htslib
-  - methylartist
-  - modbamtools
   - pip
   - pip:
       - -e .
+# Note: the app only shells out to `modkit` (and optionally `samtools faidx`,
+# with a pysam fallback); tabix/bgzip are handled by pysam. methylartist and
+# modbamtools were removed because MANGO does not call them and their dependency
+# bx-python has no Apple Silicon build, which broke conda solves on macOS arm64.
