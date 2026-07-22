@@ -89,11 +89,20 @@ def score_regions(
             & set(per_sample[relative_one])
             & set(per_sample[relative_two])
         )
+        # Initialise the scoring columns to NaN so the frame always has them,
+        # even when no region clears min_cpgs (otherwise the later column
+        # references raise KeyError). NaN comparisons yield False -> no candidate.
         record = {
             "gene": region.get("gene", region.get("name", "")),
             "region": region.get("region", ""),
             "chrom": chrom, "start": start, "end": end,
             "n_cpgs": len(shared), "chrX": chrom == "chrX",
+            "proband_meth": float("nan"),
+            f"{relative_one}_meth": float("nan"),
+            f"{relative_two}_meth": float("nan"),
+            "delta_p_r1": float("nan"), "p_p_r1": float("nan"),
+            "delta_p_r2": float("nan"), "p_p_r2": float("nan"),
+            "delta_r1_r2": float("nan"), "p_r1_r2": float("nan"),
         }
         if len(shared) >= min_cpgs:
             proband_values = [per_sample[proband][pos] for pos in shared]
