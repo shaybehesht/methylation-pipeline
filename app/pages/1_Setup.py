@@ -163,7 +163,8 @@ st.session_state.modified_bases = [chosen_mod]
 st.session_state.combine_strands = st.checkbox(
     "Combine CpG strands", value=bool(st.session_state.get("combine_strands", True)),
     help="Merge the two strands of each CpG (modkit --combine-strands). Matches "
-    "the reference pipeline; disable only if the modBAM lacks MN tags.",
+    "the reference pipeline. If the modBAMs lack MN tags (e.g. PacBio HiFi), "
+    "this is disabled automatically at run time even if left checked.",
 )
 
 st.subheader("Optional phased VCF")

@@ -370,6 +370,17 @@ def run(
     log_path = output / "pipeline.log"
     notify(0.02, "Starting analysis")
     with log_path.open("w", encoding="utf-8") as log:
+        # PacBio HiFi (and other) modBAMs without an MN tag cannot use modkit
+        # --combine-strands; auto-disable it so those inputs "just work".
+        if config.combine_strands:
+            from core.qc import any_mn_tag
+
+            if not any_mn_tag([sample.bam_path for sample in config.samples]):
+                config.combine_strands = False
+                log.write(
+                    "No MN tags detected in the modBAMs (e.g. PacBio HiFi); "
+                    "disabling --combine-strands automatically.\n"
+                )
         if config.regions.mode == "targeted":
             outcome = _run_targeted(config, output, gtf, log, notify)
         else:

@@ -147,6 +147,24 @@ No shared secrets are required: references download per-machine into
    gene/DMR or type `chrom:start-end`, drag to zoom, and pan with the range-slider
    overview track.
 
+## Sequencing platforms (ONT and PacBio)
+
+MANGO works with modBAMs from either long-read platform, because 5mC is stored
+in the standard `MM`/`ML` SAM tags and the pipeline runs on those tags via
+modkit.
+
+- **ONT (Dorado):** works out of the box; modBAMs carry the `MN` tag, so
+  `--combine-strands` is used.
+- **PacBio (HiFi 5mC):** also works. PacBio modBAMs generally lack the `MN` tag
+  that `--combine-strands` needs, so MANGO **auto-detects the absence of `MN`
+  and disables `--combine-strands` automatically** (no manual toggle required).
+  PacBio HiFi 5mC is already a symmetric per-molecule consensus, so this is the
+  correct behaviour. Keep `modified base = 5mC` and use the assembly the BAMs
+  were aligned to.
+- **Don't mix platforms within a trio** (e.g. proband on PacBio, parents on
+  ONT): different platforms/basecallers introduce methylation batch effects, and
+  the QC model-consistency check will flag it.
+
 ## Analysis methodology
 
 The pipeline mirrors the reference trio scripts.

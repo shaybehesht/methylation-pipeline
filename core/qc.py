@@ -11,18 +11,59 @@ def fasta_contigs(path: str) -> dict[str, int]:
         return dict(zip(fasta.references, fasta.lengths))
 
 
+def has_mn_tag(path: str, reads_to_check: int = 1000) -> bool | None:
+    """Whether the modBAM carries the ``MN`` tag needed for --combine-strands.
+
+    Returns ``True``/``False`` when it can be determined from the first mapped
+    reads, or ``None`` when the file cannot be read (so callers can avoid
+    overriding user intent on an ambiguous result). ONT modBAMs (Dorado) carry
+    ``MN``; PacBio HiFi modBAMs typically do not.
+    """
+    try:
+        with pysam.AlignmentFile(path, "rb", check_sq=False) as bam:
+            checked = 0
+            for read in bam.fetch(until_eof=True):
+                if read.is_unmapped:
+                    continue
+                checked += 1
+                if read.has_tag("MN"):
+                    return True
+                if checked >= reads_to_check:
+                    break
+    except (OSError, ValueError):
+        return None
+    return False
+
+
+def any_mn_tag(paths: list[str], reads_to_check: int = 1000) -> bool:
+    """True if any BAM has an ``MN`` tag, or if none could be inspected.
+
+    Used to decide whether to keep ``--combine-strands``: only when every BAM is
+    readable *and* none carry ``MN`` (e.g. a PacBio trio) do we return ``False``.
+    """
+    determinable = False
+    for path in paths:
+        result = has_mn_tag(path, reads_to_check)
+        if result is True:
+            return True
+        if result is False:
+            determinable = True
+    return not determinable
+
+
 def inspect_bam(path: str, reference: str | None = None, reads_to_check: int = 2000) -> dict:
     if not Path(path).exists():
         raise FileNotFoundError(path)
     with pysam.AlignmentFile(path, "rb", check_sq=True) as bam:
         bam_contigs = dict(zip(bam.references, bam.lengths))
         header = bam.header.to_dict()
-        hp_reads = checked = 0
+        hp_reads = checked = mn_reads = 0
         for read in bam.fetch(until_eof=True):
             if read.is_unmapped:
                 continue
             checked += 1
             hp_reads += int(read.has_tag("HP"))
+            mn_reads += int(read.has_tag("MN"))
             if checked >= reads_to_check:
                 break
     reference_matches = None
@@ -49,6 +90,7 @@ def inspect_bam(path: str, reference: str | None = None, reads_to_check: int = 2
         "reads_checked": checked,
         "hp_fraction": hp_reads / checked if checked else 0.0,
         "has_hp_tags": hp_reads > 0,
+        "has_mn_tags": mn_reads > 0,
         "basecaller_model": model,
     }
 
