@@ -25,6 +25,7 @@ import pysam
 
 from core.analysis import feasibility
 from core.annotations import panel_regions, write_bed3
+from core.chromosomes import dmr_reference_contig, resolve_reference_contig
 from core.config import Sex, TrioConfig
 from core.dmr import read_segments, run_pair
 from core.pileup import run_pileup
@@ -50,15 +51,27 @@ def _resolve_annotations(config: TrioConfig, gtf: str | None, cpg_islands: str |
     return gtf, cpg_islands
 
 
-def _one_chromosome_fasta(reference: str, chrom: str, dest: Path) -> Path:
-    """Write and index a single-chromosome FASTA to bound modkit's memory use."""
-    if not dest.exists():
-        if shutil.which("samtools"):
-            with dest.open("w") as handle:
-                subprocess.run(["samtools", "faidx", reference, chrom], stdout=handle, check=True)
-        else:
-            dest.write_text(pysam.faidx(reference, chrom))
-        pysam.faidx(str(dest))
+def _one_chromosome_fasta(
+    reference: str,
+    ref_contig: str,
+    dest: Path,
+    *,
+    header: str | None = None,
+) -> Path:
+    """Write and index a single-contig FASTA for modkit DMR."""
+    header_name = header or ref_contig
+    if dest.exists():
+        return dest
+    sequence = pysam.faidx(reference, ref_contig)
+    if header_name != ref_contig:
+        lines = sequence.splitlines()
+        if lines:
+            lines[0] = f">{header_name}"
+        sequence = "\n".join(lines)
+        if sequence and not sequence.endswith("\n"):
+            sequence += "\n"
+    dest.write_text(sequence, encoding="utf-8")
+    pysam.faidx(str(dest))
     return dest
 
 
@@ -100,8 +113,10 @@ def _run_segmentation(config: TrioConfig, output: Path, gtf: str | None, log, no
     total_units = max(len(chroms), 1)
 
     per_sample_parts: dict[str, list[Path]] = {sample.label: [] for sample in samples}
+    bam_paths = [sample.bam_path for sample in samples]
     for index, chrom in enumerate(chroms):
         notify(0.05 + 0.5 * index / total_units, f"Pileup + DMR: {chrom}")
+        ref_contig = resolve_reference_contig(reference, chrom, bam_paths)
         chrom_pileups: dict[str, Path] = {}
         for sample in samples:
             part = split / f"{sample.label}.{chrom}.bed.gz"
@@ -109,12 +124,17 @@ def _run_segmentation(config: TrioConfig, output: Path, gtf: str | None, log, no
                 run_pileup(
                     sample.bam_path, str(part), reference,
                     filter_threshold=float(config.thresholds["filter_threshold"]),
-                    region=chrom, combine_strands=combine, modified_bases=modified, log=log,
+                    region=ref_contig, combine_strands=combine, modified_bases=modified, log=log,
                 )
             chrom_pileups[sample.label] = part
             per_sample_parts[sample.label].append(part)
 
-        chrom_fasta = _one_chromosome_fasta(reference, chrom, split / f"{chrom}.fa")
+        ref_name, fasta_header = dmr_reference_contig(
+            reference, chrom, [str(p) for p in chrom_pileups.values()], bam_paths
+        )
+        chrom_fasta = _one_chromosome_fasta(
+            reference, ref_name, split / f"{chrom}.fa", header=fasta_header
+        )
         for comparison in comparisons:
             if not comparison.valid_chromosome(chrom):
                 continue
