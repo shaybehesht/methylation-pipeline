@@ -10,7 +10,6 @@ dependencies:
   - samtools
   - htslib
   - methylartist
-  - modbamtools
   - pip
   - pip:
       - -e .

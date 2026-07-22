@@ -22,7 +22,7 @@ Open <http://localhost:8501>. The host data directory is mounted read-only at
 `/data` (browse it in Setup); the reference cache is mounted read-write at
 `/reference-cache`; results are written under `./runs`.
 
-The image includes modkit, samtools/htslib, methylartist, modbamtools, and
+The image includes modkit, samtools/htslib, methylartist, and
 Python. Reference FASTAs and matching GENCODE/CpG-island annotations are **not**
 baked into the image; they are downloaded on demand into the mounted reference
 cache so the image stays small and both assemblies are not duplicated. Only the
@@ -79,6 +79,22 @@ docker compose up --build
 
 No shared secrets are required: references download per-machine into
 `METHYL_TRIO_REFERENCE_CACHE`, and remote access uses each user's own login.
+
+## Run inside AnVIL / Terra
+
+MANGO can run as an interactive app **inside** your AnVIL (Terra) workspace and
+read modBAMs straight from the workspace's Google Cloud Storage bucket — nothing
+is copied to your laptop and reads are billed to your own Terra billing project.
+
+- The **AnVIL data** page browses the workspace bucket (or accepts pasted
+  `gs://` paths from a Data Table), localizes the trio's BAMs and their indexes
+  with `gsutil` (requester-pays aware via `GOOGLE_PROJECT`), and makes them
+  selectable in **Setup** — then Regions/Thresholds/Run/Results work as usual.
+- Deploy it as a custom Cloud Environment using `anvil/Dockerfile`; MANGO shows
+  up in the Jupyter Launcher via `jupyter-server-proxy`. See
+  [anvil/README.md](anvil/README.md) for step-by-step instructions.
+- For genome-wide runs on very large BAMs, a batch WDL workflow (run on Cromwell,
+  shareable through the GREGoR Dockstore organization) is the better fit.
 
 ## Local inputs and references
 
