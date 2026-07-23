@@ -20,6 +20,9 @@ def test_modkit_commands_are_reproducible():
     assert pileup.index("--cpg") < pileup.index("--modified-bases")
     # We compress/index ourselves, so --bgzf is not passed to modkit.
     assert "--bgzf" not in pileup
+    # --chunk-size is not a real modkit pileup flag (it rejects it with exit 2);
+    # --interval-size is the supported memory control.
+    assert "--chunk-size" not in pileup
     dmr = dmr_command("a.bed.gz", "b.bed.gz", "out.tsv", "ref.fa", segment="seg.bed")
     assert "--segment" in dmr and "--header" in dmr and "--base" in dmr and "--force" in dmr
 

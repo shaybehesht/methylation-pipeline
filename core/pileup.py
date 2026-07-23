@@ -33,7 +33,6 @@ def build_command(
     modified_bases: tuple[str, ...] = ("5mC",),
     threads: int | None = None,
     interval_size: int | None = None,
-    chunk_size: int | None = None,
     suppress_progress: bool = True,
     log_filepath: str | None = None,
 ) -> list[str]:
@@ -52,8 +51,6 @@ def build_command(
         command.extend(["--threads", str(threads)])
     if interval_size:
         command.extend(["--interval-size", str(interval_size)])
-    if chunk_size:
-        command.extend(["--chunk-size", str(chunk_size)])
     if suppress_progress:
         command.append("--suppress-progress")
     if log_filepath:
@@ -151,7 +148,6 @@ def run_pileup(
             combine_strands=combine_strands, modified_bases=tabulated,
             threads=modkit_threads,
             interval_size=100_000,
-            chunk_size=max(2, modkit_threads // 2),
             log_filepath=str(log_path),
         )
         if include_bed:
