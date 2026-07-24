@@ -1,6 +1,9 @@
 version: 1.2
 # Registered on Dockstore via the Dockstore GitHub App (reads this file per branch/tag).
-# AnVIL users should pick MANGO-ONT or MANGO-PACBIO for their sequencing platform.
+# AnVIL users should pick mango_ont (MANGO-ONT) or mango_pacbio (MANGO-PACBIO).
+#
+# filters: only sync main + version tags so feature branches (cursor/...) do not
+# appear as Dockstore / Terra workflow versions.
 workflows:
   - name: mango_ont
     subclass: WDL
@@ -10,6 +13,11 @@ workflows:
     readMePath: /wdl/README.md
     authors:
       - name: MANGO
+    filters:
+      branches:
+        - main
+      tags:
+        - "v*"
   - name: mango_pacbio
     subclass: WDL
     primaryDescriptorPath: /wdl/mango_pacbio.wdl
@@ -18,6 +26,11 @@ workflows:
     readMePath: /wdl/README.md
     authors:
       - name: MANGO
+    filters:
+      branches:
+        - main
+      tags:
+        - "v*"
   - name: mango_trio
     subclass: WDL
     primaryDescriptorPath: /wdl/mango_trio.wdl
@@ -26,3 +39,8 @@ workflows:
     readMePath: /wdl/README.md
     authors:
       - name: MANGO
+    filters:
+      branches:
+        - main
+      tags:
+        - "v*"
