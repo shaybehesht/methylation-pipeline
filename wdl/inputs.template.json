@@ -30,12 +30,13 @@
 
   "mango_trio.modified_bases": ["5mC"],
   "mango_trio.combine_strands": true,
-  "mango_trio.platform": "auto",
+  "mango_trio.platform": "ont",
+  "__platform_comment__": "Set platform to \"ont\" for Nanopore Dorado or \"pacbio\" for PacBio HiFi. Prefer an explicit value over \"auto\".",
   "mango_trio.threshold_overrides": ["min_sites=5", "alpha=0.05"],
 
   "mango_trio.docker": "docker.io/shaghayeghb/mango:latest",
   "mango_trio.cpu": 4,
   "mango_trio.memory_gb": 32,
-  "mango_trio.disk_gb": 100,
-  "mango_trio.preemptible": 1
+  "mango_trio.disk_gb": 500,
+  "mango_trio.preemptible": 0
 }

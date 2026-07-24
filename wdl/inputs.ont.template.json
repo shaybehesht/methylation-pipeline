@@ -32,6 +32,6 @@
   "mango_ont.docker": "docker.io/shaghayeghb/mango:latest",
   "mango_ont.cpu": 4,
   "mango_ont.memory_gb": 32,
-  "mango_ont.disk_gb": 100,
-  "mango_ont.preemptible": 1
+  "mango_ont.disk_gb": 500,
+  "mango_ont.preemptible": 0
 }

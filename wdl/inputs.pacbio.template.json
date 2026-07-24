@@ -32,6 +32,6 @@
   "mango_pacbio.docker": "docker.io/shaghayeghb/mango:latest",
   "mango_pacbio.cpu": 4,
   "mango_pacbio.memory_gb": 32,
-  "mango_pacbio.disk_gb": 100,
-  "mango_pacbio.preemptible": 1
+  "mango_pacbio.disk_gb": 500,
+  "mango_pacbio.preemptible": 0
 }

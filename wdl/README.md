@@ -8,39 +8,108 @@ the GREGoR consortium through Dockstore. (For interactive, plot-driven analysis
 of a single trio, use the MANGO app route — the interactive AnVIL Cloud
 Environment integration — instead.)
 
-## For consortium users (quickstart)
+---
 
-If someone has already published this workflow, you don't build or install
-anything — you run it in **your own** Terra workspace against **your own** data.
+## Guideline: how consortium users run ONT vs PacBio
 
-1. **Import the right workflow for your platform:** Workflows → *Find a Workflow*
-   → *Dockstore.org* → search `mango`:
-   - **MANGO-ONT** (`mango_ont`) — Oxford Nanopore Dorado modBAMs
-   - **MANGO-PACBIO** (`mango_pacbio`) — PacBio HiFi modBAMs
-   - `mango_trio` (legacy) — auto-detects platform from MN tags; prefer ONT/PACBIO
-2. **Choose** "Run workflow(s) with inputs defined by file paths" (simplest for
-   one trio), so it's a single run.
-3. **Fill in only your data** (leave everything else at its default):
+### Which Dockstore version?
+
+Use workflow version **`v0.1.15`** (or newer `v*` / `main`).
+
+Older tags (e.g. `v0.1.9`) lack the platform fix and recent modkit fixes — do not
+use them for new runs.
+
+### How do I choose Nanopore vs PacBio?
+
+**Today (recommended):** import the published workflow **`mango_trio`**, then set
+the **`platform`** input:
+
+| Your data | Set `mango_trio.platform` to |
+|-----------|------------------------------|
+| Oxford Nanopore (Dorado) modBAMs | `"ont"` |
+| PacBio HiFi modBAMs | `"pacbio"` |
+
+That forces the correct modkit pileup settings. Do **not** rely on auto-detect
+unless you know your BAMs carry Dorado `MN` tags (PacBio usually does not).
+
+**Later (when published):** Dockstore will also expose dedicated workflows
+`mango_ont` (MANGO-ONT) and `mango_pacbio` (MANGO-PACBIO) with the platform
+baked in. Until those appear in public Dockstore search, use `mango_trio` +
+`platform` as above. (Repo maintainers: publish them under Dockstore →
+*My Workflows* if they are still unpublished.)
+
+### Step-by-step in Terra
+
+1. **Import:** Workflows → *Find a Workflow* → *Dockstore.org* → search
+   `mango_trio` (path:
+   `github.com/shaybehesht/methylation-pipeline/mango_trio`) → import into your
+   workspace.
+2. **Version:** open the workflow → select **`v0.1.15`** (not an old tag).
+3. **Run mode:** choose “Run workflow(s) with inputs defined by file paths”
+   (simplest for one trio).
+4. **Fill in your data:**
 
    | Input | What to set |
    |-------|-------------|
-   | `proband_bam`, `proband_bai` | your proband's `gs://` modBAM + index |
-   | `relative1_bam/bai`, `relative2_bam/bai` | the two relatives' `gs://` modBAM + index |
+   | `proband_bam`, `proband_bai` | proband `gs://` modBAM + `.bai` |
+   | `relative1_bam/bai`, `relative2_bam/bai` | relatives’ modBAM + `.bai` |
    | `proband_sex`, `relative1_sex`, `relative2_sex` | `"F"` or `"M"` |
+   | **`platform`** | **`"ont"` or `"pacbio"`** (required for correct analysis) |
    | `mode` | `"targeted"` (+ `genes`), `"chromosomes"` (+ `chromosomes`), or `"whole_genome"` |
-   | `genes` / `chromosomes` | e.g. `["MECP2","SNRPN"]` / `["chr11"]` |
-   | `disk_gb` | size for your BAMs (WGS long-read: `500`+) |
-   | `preemptible` | `0` to avoid restarts |
+   | `genes` / `chromosomes` | e.g. `["MECP2","SNRPN"]` / `["chr14"]` |
+   | `disk_gb` | **`500`+** for WGS long-read BAMs (this is **disk**, not RAM) |
+   | `memory_gb` | **`32`** (raise only if the job OOMs; do **not** set to 500) |
+   | `preemptible` | `0` to avoid preemption restarts |
+   | `docker` | see below |
 
-4. **Leave these at their defaults:** `docker` (public image), `assembly`
-   (`hg38`), and the reference/`gtf`/`cpg_islands` fields (blank -> auto-download).
-5. **Optional metadata:** `*_label`, `*_affection`, `*_relationship` improve the
-   report but aren't required.
-6. **Launch.** Outputs (`report.html`, figures, tables, `mango_run.tar.gz`) land
-   in your workspace bucket under the submission's `call-run_mango/` folder.
+5. **Leave at defaults unless you have a reason to change them:** `assembly`
+   (`hg38`), blank `reference_fasta` / `gtf` / `cpg_islands` (auto-download).
+6. **Optional:** `*_label`, `*_affection`, `*_relationship` improve the report.
+7. **Launch.** Outputs land under the submission’s `call-run_mango/` folder
+   (`report.html`, `summary.json`, tables, figures, `mango_run.tar.gz`).
 
-Requirements on your side: your own Terra billing project and access to your
-data. Runs bill to you. Don't mix sequencing platforms within one trio.
+### Docker image
+
+Always include the `docker.io/` prefix (Terra/Cromwell requirement):
+
+```text
+docker.io/shaghayeghb/mango:latest
+```
+
+To pin a known-good build (recommended for papers / shared runs):
+
+```text
+docker.io/shaghayeghb/mango:870245c16f21be0c711deae379e7270e4a075cff
+```
+
+(`870245c…` is the v0.1.14+ image that includes ONT/PACBIO platform support and
+modkit fixes. Prefer `latest` only if you are okay tracking new builds.)
+
+### Memory vs disk (common mix-up)
+
+| Input | Typical value | Meaning |
+|-------|----------------|---------|
+| `disk_gb` | **500** | Scratch disk for BAMs + reference download |
+| `memory_gb` | **32** | RAM for `mango-run` / modkit |
+
+### Requirements / caveats
+
+- You need your own Terra billing project; runs bill to you.
+- Inputs must be **modBAM + `.bai`** (CRAM is not supported — convert first).
+- Do not mix ONT and PacBio within one trio.
+- Empty `proband_specific_DMRs.tsv` with a successful run can mean “no private
+  candidates passed filters,” not a crash — check `summary.json`
+  (`candidate_count` vs `null_count`) and `*.segments.tsv`.
+
+### What “version” means
+
+The Dockstore/Terra **version dropdown** (e.g. `v0.1.15`, `main`) is the WDL
+snapshot. **ONT vs PacBio is not a version** — it is either:
+
+- the `platform` input on `mango_trio`, or
+- a separate workflow (`mango_ont` / `mango_pacbio`) once those are published.
+
+---
 
 ## What it produces
 
@@ -52,21 +121,23 @@ segment/targeted tables, `summary.json`, `report.html`, figures, and a
 
 - [`mango_ont.wdl`](mango_ont.wdl) — **MANGO-ONT** workflow (Dorado / Nanopore).
 - [`mango_pacbio.wdl`](mango_pacbio.wdl) — **MANGO-PACBIO** workflow (PacBio HiFi).
-- [`mango_trio.wdl`](mango_trio.wdl) — legacy auto-platform workflow.
+- [`mango_trio.wdl`](mango_trio.wdl) — published workflow; set `platform` to `ont` or `pacbio`.
 - [`mango_run_task.wdl`](mango_run_task.wdl) — shared Cromwell task.
-- [`inputs.ont.template.json`](inputs.ont.template.json) / [`inputs.pacbio.template.json`](inputs.pacbio.template.json) — input templates.
-- [`../.dockstore.yml`](../.dockstore.yml) — registers all three workflows on Dockstore.
+- [`inputs.ont.template.json`](inputs.ont.template.json) / [`inputs.pacbio.template.json`](inputs.pacbio.template.json) / [`inputs.template.json`](inputs.template.json) — input templates.
+- [`../.dockstore.yml`](../.dockstore.yml) — registers workflows on Dockstore (`main` + `v*` tags only).
 
 ## Inputs at a glance
 
 - Three samples (proband + two relatives): each takes a `*_bam`, `*_bai`, `*_sex`
   (`F`/`M`), and optional `*_affection` / `*_relationship`.
+- **`platform`:** `ont` | `pacbio` | `auto` (prefer `ont` or `pacbio`).
 - Reference: either set `assembly` (`hg38`/`hg19`) to auto-download, or provide
   `reference_fasta` + `reference_fai` (+ `gtf` for `mode = targeted`, optional
   `cpg_islands`) to override.
 - `mode`: `targeted` (needs `genes`), `chromosomes` (needs `chromosomes`), or
   `whole_genome`.
-- `docker`: your published MANGO image (see below).
+- `docker`: public MANGO image (see above).
+- `disk_gb` / `memory_gb`: see table above.
 
 ---
 

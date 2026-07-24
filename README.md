@@ -1,10 +1,27 @@
 # 🥭 MANGO — Methylation Analysis for Novel Genomic Outcomes
 
 MANGO (Methylation Analysis for Novel Genomic Outcomes) is an offline Streamlit
-application for exploratory nanopore methylation DMR analysis of one proband and
+application for exploratory long-read methylation DMR analysis of one proband and
 two relatives. Roles, sexes, region scope, and every analysis threshold are
 configurable. Local modBAMs are selected through a server-side file browser, and
 reference assemblies are downloaded once and cached for offline reuse.
+
+## AnVIL / Terra / Dockstore (consortium batch runs)
+
+For GREGoR / AnVIL users running a trio on Terra (WDL), see the full guideline:
+
+**→ [`wdl/README.md`](wdl/README.md) — how to import, which version, ONT vs PacBio, docker, disk vs memory**
+
+Short version:
+
+1. Import Dockstore workflow **`mango_trio`** at version **`v0.1.15`** (or newer).
+2. Set **`platform`** to `"ont"` (Nanopore) or `"pacbio"` (PacBio HiFi).
+3. Use `disk_gb: 500`, `memory_gb: 32`, and docker
+   `docker.io/shaghayeghb/mango:latest` (or a pinned SHA from the WDL README).
+
+Dedicated Dockstore workflows `mango_ont` / `mango_pacbio` are in the repo and
+will appear in Terra once published on Dockstore; until then use `mango_trio` +
+`platform`.
 
 ## Start with Docker
 
