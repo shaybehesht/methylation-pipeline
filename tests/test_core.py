@@ -37,6 +37,21 @@ def test_pileup_can_disable_combine_strands_and_take_multiple_mods():
     assert pileup[index + 3] == "--filter-threshold"
 
 
+def test_general_worker_path_uses_motif_and_allows_implicit():
+    # PacBio HiFi route: general workers (--motif CG 0) instead of the optimized
+    # --cpg workers, no --modified-bases, and implicit mod mode allowed.
+    pileup = pileup_command(
+        "a.bam", "a.bed.gz", "ref.fa", region="chr14",
+        combine_strands=False, use_general_workers=True, force_allow_implicit=True,
+    )
+    assert "--cpg" not in pileup
+    assert "--modified-bases" not in pileup
+    motif = pileup.index("--motif")
+    assert pileup[motif + 1:motif + 3] == ["CG", "0"]
+    assert "--force-allow-implicit" in pileup
+    assert pileup[pileup.index("--region") + 1] == "chr14"
+
+
 def test_n_other_is_recomputed():
     source = pd.DataFrame({
         "N_valid_cov": [10, 5], "N_mod": [6, 1],

@@ -35,18 +35,44 @@ def build_command(
     interval_size: int | None = None,
     suppress_progress: bool = True,
     log_filepath: str | None = None,
+    use_general_workers: bool = False,
+    force_allow_implicit: bool = False,
 ) -> list[str]:
+    """Assemble a ``modkit pileup`` command.
+
+    Two CpG code paths, mirroring modkit's own two worker families:
+
+    * default (``--cpg`` + ``--modified-bases``) uses modkit's *optimized*
+      workers. Fast, but they reject records with implicit mod mode (``C+m.``)
+      and (-)-strand calls, which are common in PacBio HiFi modBAMs — every such
+      record is counted as "failed processing" and the pileup comes back empty;
+    * ``use_general_workers`` swaps ``--cpg`` for ``--motif CG 0`` (and drops
+      ``--modified-bases``) so modkit uses its *general* workers, which accept
+      those records. This is modkit's documented remedy for the
+      "~N failed processing / processed 0 rows" signature (nanoporetech/modkit
+      issues #545 and #567). ``--force-allow-implicit`` additionally admits
+      implicit-mode records instead of failing them.
+    """
     command = ["modkit", "pileup", bam, output, "--ref", reference]
     if region:
         command.extend(["--region", region])
-    command.append("--cpg")
+    if use_general_workers:
+        # General workers: CpG motif at offset 0, all mod codes present in the
+        # modBAM are tabulated automatically (no --modified-bases, which would
+        # otherwise force the optimized workers back on).
+        command.extend(["--motif", "CG", "0"])
+    else:
+        command.append("--cpg")
     if combine_strands:
         command.append("--combine-strands")
-    # modkit >=0.6 requires an explicit modified base with --cpg; --filter-threshold
-    # follows so the variadic modified-bases list terminates cleanly.
-    command.append("--modified-bases")
-    command.extend(modified_bases)
+    if not use_general_workers:
+        # modkit >=0.6 requires an explicit modified base with --cpg;
+        # --filter-threshold follows so the variadic list terminates cleanly.
+        command.append("--modified-bases")
+        command.extend(modified_bases)
     command.extend(["--filter-threshold", str(filter_threshold)])
+    if force_allow_implicit:
+        command.append("--force-allow-implicit")
     if threads:
         command.extend(["--threads", str(threads)])
     if interval_size:
@@ -116,6 +142,27 @@ def fold_and_index(raw_bed: str | Path, output_gz: str | Path) -> Path:
     return out_path
 
 
+def _raw_has_rows(raw_bed: Path) -> bool:
+    """True when a raw modkit pileup BED has at least one data row."""
+    if not raw_bed.exists() or raw_bed.stat().st_size == 0:
+        return False
+    with raw_bed.open("r") as handle:
+        for line in handle:
+            if line.strip() and not line.startswith("#"):
+                return True
+    return False
+
+
+def _modkit_failure_reason(log_path: Path, max_lines: int = 25) -> str:
+    """Return the tail of modkit's log (per-record skip/fail reasons, if any)."""
+    if not log_path.exists():
+        return ""
+    text = log_path.read_text(encoding="utf-8", errors="replace").strip()
+    if not text:
+        return ""
+    return "\n".join(text.splitlines()[-max_lines:])
+
+
 def run_pileup(
     bam: str,
     output: str,
@@ -140,6 +187,11 @@ def run_pileup(
     raw_path = output_path.with_suffix(output_path.suffix + ".raw.bed")
     tabulated = pileup_modified_bases(modified_bases)
     modkit_threads = threads or 4
+    # PacBio HiFi modBAMs (no MN tag, so combine_strands is disabled upstream)
+    # frequently use implicit mod mode and other record types that modkit's
+    # optimized CpG workers reject wholesale. Route them through the general
+    # workers so they are not all counted as "failed processing".
+    use_general_workers = not combine_strands
     with tempfile.TemporaryDirectory() as scratch:
         log_path = Path(scratch) / "modkit_pileup.log"
         command = build_command(
@@ -149,10 +201,27 @@ def run_pileup(
             threads=modkit_threads,
             interval_size=100_000,
             log_filepath=str(log_path),
+            use_general_workers=use_general_workers,
+            force_allow_implicit=use_general_workers,
         )
         if include_bed:
             command.extend(["--include-bed", include_bed])
         run_checked(command, log=log, log_filepath=log_path, tool="modkit pileup")
+        # modkit exits 0 even when every record fails to process, leaving an
+        # empty pileup. Surface modkit's own per-record reasons (from the log)
+        # instead of a misleading downstream "contig mismatch" error.
+        if not _raw_has_rows(raw_path):
+            reason = _modkit_failure_reason(log_path)
+            raw_path.unlink(missing_ok=True)
+            raise RuntimeError(
+                f"modkit pileup produced no rows for {Path(bam).name}"
+                + (f" (region {region})" if region else "")
+                + ".\nEvery read was rejected by modkit (see reasons below). For "
+                "PacBio HiFi modBAMs this is usually implicit mod mode or "
+                "unsupported record types; the general-worker path with "
+                "--force-allow-implicit is already enabled.\n"
+                + (f"modkit log:\n{reason}" if reason else "modkit produced no log output.")
+            )
     try:
         fold_and_index(raw_path, output_path)
         n_rows, n_invalid, examples = validate_bedmethyl(output_path)
