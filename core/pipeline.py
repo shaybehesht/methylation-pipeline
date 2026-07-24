@@ -43,6 +43,44 @@ AUTOSOMES = [f"chr{i}" for i in range(1, 23)]
 WHOLE_GENOME_CHROMS = AUTOSOMES + ["chrX"]
 
 
+def _apply_platform(config: TrioConfig, log) -> None:
+    """Resolve ``combine_strands`` (and thus pileup worker family) from ``config.platform``.
+
+    * ``ont`` — force ``--cpg`` + ``--combine-strands`` (optimized workers)
+    * ``pacbio`` — force ``--motif CG 0`` without combine-strands (general workers)
+    * ``auto`` — keep CLI combine_strands unless MN tags are absent
+    """
+    platform = config.platform
+    if platform == "ont":
+        config.combine_strands = True
+        log.write("Platform=ont: using --cpg + --combine-strands (optimized workers).\n")
+        from core.qc import any_mn_tag
+
+        if not any_mn_tag([sample.bam_path for sample in config.samples]):
+            log.write(
+                "Warning: platform=ont but no MN tags were detected. "
+                "Continuing with --combine-strands; if pileup fails, check that "
+                "these are Dorado modBAMs or use the PacBio workflow.\n"
+            )
+        return
+    if platform == "pacbio":
+        config.combine_strands = False
+        log.write(
+            "Platform=pacbio: using --motif CG 0 without --combine-strands "
+            "(general workers).\n"
+        )
+        return
+    if config.combine_strands:
+        from core.qc import any_mn_tag
+
+        if not any_mn_tag([sample.bam_path for sample in config.samples]):
+            config.combine_strands = False
+            log.write(
+                "No MN tags detected in the modBAMs (e.g. PacBio HiFi); "
+                "disabling --combine-strands automatically.\n"
+            )
+
+
 def _resolve_annotations(config: TrioConfig, gtf: str | None, cpg_islands: str | None):
     if (gtf is None or cpg_islands is None) and config.assembly:
         from core.references import prepared_paths
@@ -422,17 +460,7 @@ def run(
 
         for sample in config.samples:
             ensure_index(sample.bam_path, log)
-        # PacBio HiFi (and other) modBAMs without an MN tag cannot use modkit
-        # --combine-strands; auto-disable it so those inputs "just work".
-        if config.combine_strands:
-            from core.qc import any_mn_tag
-
-            if not any_mn_tag([sample.bam_path for sample in config.samples]):
-                config.combine_strands = False
-                log.write(
-                    "No MN tags detected in the modBAMs (e.g. PacBio HiFi); "
-                    "disabling --combine-strands automatically.\n"
-                )
+        _apply_platform(config, log)
         if config.regions.mode == "targeted":
             outcome = _run_targeted(config, output, gtf, log, notify)
         else:

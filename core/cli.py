@@ -107,6 +107,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Disable modkit --combine-strands (for modBAMs lacking MN tags).",
     )
     parser.add_argument(
+        "--platform", default="auto", choices=["ont", "pacbio", "auto"],
+        help="Sequencing platform. 'ont' forces CpG optimized workers + combine-strands; "
+        "'pacbio' forces general workers without combine-strands; "
+        "'auto' (default) infers from MN tags.",
+    )
+    parser.add_argument(
         "--set-threshold", action="append", dest="thresholds", default=None,
         metavar="KEY=VALUE",
         help="Override a threshold; repeatable. Keys: " + ", ".join(REGISTRY),
@@ -195,6 +201,7 @@ def build_config(args: argparse.Namespace) -> TrioConfig:
         assembly=args.assembly or "",
         modified_bases=list(args.modified_bases) if args.modified_bases else ["5mC"],
         combine_strands=not args.no_combine_strands,
+        platform=args.platform,
     )
 
 

@@ -33,6 +33,12 @@ def test_requires_exactly_one_proband_and_unique_labels():
         TrioConfig(duplicate, "/ref.fa")
 
 
+def test_platform_must_be_ont_pacbio_or_auto():
+    with pytest.raises(ValueError, match="Unsupported platform"):
+        TrioConfig(samples(), "/ref.fa", platform="illumina")
+    assert TrioConfig(samples(), "/ref.fa", platform="ONT").platform == "ont"
+
+
 def test_optional_metadata_drives_evidence_status():
     trio = samples()
     trio[0] = Sample(

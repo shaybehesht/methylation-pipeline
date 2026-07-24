@@ -1,0 +1,37 @@
+{
+  "__comment__": "MANGO-PACBIO inputs for PacBio HiFi modBAMs. Provide 3 BAMs (+indexes), set assembly=hg38, pick a mode, and set docker.",
+
+  "mango_pacbio.proband_bam": "gs://your-workspace-bucket/proband.bam",
+  "mango_pacbio.proband_bai": "gs://your-workspace-bucket/proband.bam.bai",
+  "mango_pacbio.proband_label": "proband",
+  "mango_pacbio.proband_sex": "F",
+  "mango_pacbio.proband_affection": "affected",
+
+  "mango_pacbio.relative1_bam": "gs://your-workspace-bucket/mother.bam",
+  "mango_pacbio.relative1_bai": "gs://your-workspace-bucket/mother.bam.bai",
+  "mango_pacbio.relative1_label": "mother",
+  "mango_pacbio.relative1_sex": "F",
+  "mango_pacbio.relative1_relationship": "mother",
+  "mango_pacbio.relative1_affection": "unaffected",
+
+  "mango_pacbio.relative2_bam": "gs://your-workspace-bucket/father.bam",
+  "mango_pacbio.relative2_bai": "gs://your-workspace-bucket/father.bam.bai",
+  "mango_pacbio.relative2_label": "father",
+  "mango_pacbio.relative2_sex": "M",
+  "mango_pacbio.relative2_relationship": "father",
+  "mango_pacbio.relative2_affection": "unaffected",
+
+  "mango_pacbio.assembly": "hg38",
+  "mango_pacbio.mode": "targeted",
+  "mango_pacbio.chromosomes": [],
+  "mango_pacbio.genes": ["MECP2", "UBE3A", "SNRPN"],
+
+  "mango_pacbio.modified_bases": ["5mC"],
+  "mango_pacbio.threshold_overrides": ["min_sites=5", "alpha=0.05"],
+
+  "mango_pacbio.docker": "docker.io/shaghayeghb/mango:latest",
+  "mango_pacbio.cpu": 4,
+  "mango_pacbio.memory_gb": 32,
+  "mango_pacbio.disk_gb": 100,
+  "mango_pacbio.preemptible": 1
+}

@@ -90,6 +90,7 @@ class TrioConfig:
     assembly: str = ""
     modified_bases: list[str] = field(default_factory=lambda: ["5mC"])
     combine_strands: bool = True
+    platform: str = "auto"  # ont | pacbio | auto
 
     def __post_init__(self) -> None:
         if len(self.samples) != 3:
@@ -101,6 +102,10 @@ class TrioConfig:
             raise ValueError("Exactly one sample must be the proband")
         if not self.reference_fasta.strip():
             raise ValueError("Reference FASTA is required")
+        platform = (self.platform or "auto").strip().lower()
+        if platform not in {"ont", "pacbio", "auto"}:
+            raise ValueError(f"Unsupported platform: {self.platform!r} (use ont, pacbio, or auto)")
+        self.platform = platform
 
     @property
     def proband(self) -> Sample:

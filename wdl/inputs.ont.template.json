@@ -1,0 +1,37 @@
+{
+  "__comment__": "MANGO-ONT inputs for Oxford Nanopore Dorado modBAMs. Provide 3 BAMs (+indexes), set assembly=hg38, pick a mode, and set docker.",
+
+  "mango_ont.proband_bam": "gs://your-workspace-bucket/proband.bam",
+  "mango_ont.proband_bai": "gs://your-workspace-bucket/proband.bam.bai",
+  "mango_ont.proband_label": "proband",
+  "mango_ont.proband_sex": "F",
+  "mango_ont.proband_affection": "affected",
+
+  "mango_ont.relative1_bam": "gs://your-workspace-bucket/mother.bam",
+  "mango_ont.relative1_bai": "gs://your-workspace-bucket/mother.bam.bai",
+  "mango_ont.relative1_label": "mother",
+  "mango_ont.relative1_sex": "F",
+  "mango_ont.relative1_relationship": "mother",
+  "mango_ont.relative1_affection": "unaffected",
+
+  "mango_ont.relative2_bam": "gs://your-workspace-bucket/father.bam",
+  "mango_ont.relative2_bai": "gs://your-workspace-bucket/father.bam.bai",
+  "mango_ont.relative2_label": "father",
+  "mango_ont.relative2_sex": "M",
+  "mango_ont.relative2_relationship": "father",
+  "mango_ont.relative2_affection": "unaffected",
+
+  "mango_ont.assembly": "hg38",
+  "mango_ont.mode": "targeted",
+  "mango_ont.chromosomes": [],
+  "mango_ont.genes": ["MECP2", "UBE3A", "SNRPN"],
+
+  "mango_ont.modified_bases": ["5mC"],
+  "mango_ont.threshold_overrides": ["min_sites=5", "alpha=0.05"],
+
+  "mango_ont.docker": "docker.io/shaghayeghb/mango:latest",
+  "mango_ont.cpu": 4,
+  "mango_ont.memory_gb": 32,
+  "mango_ont.disk_gb": 100,
+  "mango_ont.preemptible": 1
+}

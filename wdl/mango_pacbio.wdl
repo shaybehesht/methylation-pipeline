@@ -1,12 +1,11 @@
 version 1.0
 
-# MANGO (auto) — trio methylation DMR with platform auto-detected from MN tags.
-# Prefer mango_ont / mango_pacbio on Dockstore when you know the sequencing
-# platform. This workflow is kept for backward compatibility.
+# MANGO-PACBIO — trio methylation DMR for PacBio HiFi modBAMs.
+# Forces --platform pacbio: general workers (--motif CG 0), no --combine-strands.
 
 import "mango_run_task.wdl" as mango
 
-workflow mango_trio {
+workflow mango_pacbio {
   input {
     File proband_bam
     File proband_bai
@@ -40,9 +39,6 @@ workflow mango_trio {
 
     File? phased_vcf
     Array[String] modified_bases = ["5mC"]
-    # Kept for older inputs; with platform=auto, false disables combine-strands.
-    Boolean combine_strands = true
-    String platform = "auto"
     Array[String] threshold_overrides = []
 
     String docker = "docker.io/shaghayeghb/mango:latest"
@@ -69,7 +65,7 @@ workflow mango_trio {
       gtf = gtf, cpg_islands = cpg_islands, assembly = assembly,
       mode = mode, chromosomes = chromosomes, genes = genes,
       phased_vcf = phased_vcf, modified_bases = modified_bases,
-      platform = platform, combine_strands = combine_strands,
+      platform = "pacbio", combine_strands = false,
       threshold_overrides = threshold_overrides,
       docker = docker, cpu = cpu, memory_gb = memory_gb,
       disk_gb = disk_gb, preemptible = preemptible
@@ -87,7 +83,7 @@ workflow mango_trio {
   }
 
   meta {
-    description: "MANGO (auto platform): trio methylation DMR for AnVIL/Terra. Prefer MANGO-ONT or MANGO-PACBIO when the platform is known."
+    description: "MANGO-PACBIO: trio methylation DMR for PacBio HiFi modBAMs (AnVIL/Terra)."
     author: "MANGO"
   }
 }

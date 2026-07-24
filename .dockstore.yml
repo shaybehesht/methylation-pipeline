@@ -1,6 +1,23 @@
 version: 1.2
 # Registered on Dockstore via the Dockstore GitHub App (reads this file per branch/tag).
+# AnVIL users should pick MANGO-ONT or MANGO-PACBIO for their sequencing platform.
 workflows:
+  - name: mango_ont
+    subclass: WDL
+    primaryDescriptorPath: /wdl/mango_ont.wdl
+    testParameterFiles:
+      - /wdl/inputs.ont.template.json
+    readMePath: /wdl/README.md
+    authors:
+      - name: MANGO
+  - name: mango_pacbio
+    subclass: WDL
+    primaryDescriptorPath: /wdl/mango_pacbio.wdl
+    testParameterFiles:
+      - /wdl/inputs.pacbio.template.json
+    readMePath: /wdl/README.md
+    authors:
+      - name: MANGO
   - name: mango_trio
     subclass: WDL
     primaryDescriptorPath: /wdl/mango_trio.wdl

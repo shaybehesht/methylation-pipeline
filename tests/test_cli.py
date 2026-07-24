@@ -47,6 +47,15 @@ def test_build_config_chromosomes_and_options():
     assert config.regions.chromosomes == ["chr1", "chr11"]
     assert config.combine_strands is False
     assert config.modified_bases == ["5mC", "5hmC"]
+    assert config.platform == "auto"
+
+
+def test_build_config_platform_ont_and_pacbio():
+    ont = _config(["--mode", "whole_genome", "--platform", "ont"])
+    assert ont.platform == "ont"
+    assert ont.combine_strands is True
+    pacbio = _config(["--mode", "whole_genome", "--platform", "pacbio"])
+    assert pacbio.platform == "pacbio"
 
 
 def test_build_config_whole_genome_defaults():

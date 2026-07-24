@@ -13,8 +13,11 @@ Environment integration — instead.)
 If someone has already published this workflow, you don't build or install
 anything — you run it in **your own** Terra workspace against **your own** data.
 
-1. **Import it:** Workflows -> *Find a Workflow* -> *Dockstore.org* -> search
-   `mango_trio` -> import into your workspace.
+1. **Import the right workflow for your platform:** Workflows → *Find a Workflow*
+   → *Dockstore.org* → search `mango`:
+   - **MANGO-ONT** (`mango_ont`) — Oxford Nanopore Dorado modBAMs
+   - **MANGO-PACBIO** (`mango_pacbio`) — PacBio HiFi modBAMs
+   - `mango_trio` (legacy) — auto-detects platform from MN tags; prefer ONT/PACBIO
 2. **Choose** "Run workflow(s) with inputs defined by file paths" (simplest for
    one trio), so it's a single run.
 3. **Fill in only your data** (leave everything else at its default):
@@ -31,7 +34,6 @@ anything — you run it in **your own** Terra workspace against **your own** dat
 
 4. **Leave these at their defaults:** `docker` (public image), `assembly`
    (`hg38`), and the reference/`gtf`/`cpg_islands` fields (blank -> auto-download).
-   ONT vs PacBio is auto-detected (no toggle needed).
 5. **Optional metadata:** `*_label`, `*_affection`, `*_relationship` improve the
    report but aren't required.
 6. **Launch.** Outputs (`report.html`, figures, tables, `mango_run.tar.gz`) land
@@ -48,9 +50,12 @@ segment/targeted tables, `summary.json`, `report.html`, figures, and a
 
 ## Files
 
-- [`mango_trio.wdl`](mango_trio.wdl) — the workflow + task.
-- [`inputs.template.json`](inputs.template.json) — fill in `gs://` paths + the docker image.
-- [`../.dockstore.yml`](../.dockstore.yml) — registers this workflow on Dockstore.
+- [`mango_ont.wdl`](mango_ont.wdl) — **MANGO-ONT** workflow (Dorado / Nanopore).
+- [`mango_pacbio.wdl`](mango_pacbio.wdl) — **MANGO-PACBIO** workflow (PacBio HiFi).
+- [`mango_trio.wdl`](mango_trio.wdl) — legacy auto-platform workflow.
+- [`mango_run_task.wdl`](mango_run_task.wdl) — shared Cromwell task.
+- [`inputs.ont.template.json`](inputs.ont.template.json) / [`inputs.pacbio.template.json`](inputs.pacbio.template.json) — input templates.
+- [`../.dockstore.yml`](../.dockstore.yml) — registers all three workflows on Dockstore.
 
 ## Inputs at a glance
 
