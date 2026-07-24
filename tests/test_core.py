@@ -37,20 +37,22 @@ def test_pileup_can_disable_combine_strands_and_take_multiple_mods():
     assert pileup[index + 3] == "--filter-threshold"
 
 
-def test_general_worker_path_uses_motif_without_banned_flags():
-    # PacBio HiFi route: general workers (--motif CG 0) instead of the optimized
-    # --cpg workers, and no --modified-bases. Never emit flags that bioconda
-    # modkit 0.6.x rejects (--chunk-size, --force-allow-implicit).
+def test_general_worker_path_uses_motif_with_modified_bases():
+    # PacBio / no-MN route: general workers (--motif CG 0) instead of --cpg,
+    # but still pass --modified-bases so DMR does not see multiple rows per CpG.
     pileup = pileup_command(
         "a.bam", "a.bed.gz", "ref.fa", region="chr14",
         combine_strands=False, use_general_workers=True,
+        modified_bases=("5mC", "5hmC"),
     )
     assert "--cpg" not in pileup
-    assert "--modified-bases" not in pileup
     assert "--force-allow-implicit" not in pileup
     assert "--chunk-size" not in pileup
     motif = pileup.index("--motif")
     assert pileup[motif + 1:motif + 3] == ["CG", "0"]
+    index = pileup.index("--modified-bases")
+    assert pileup[index + 1:index + 3] == ["5mC", "5hmC"]
+    assert pileup[index + 3] == "--filter-threshold"
     assert pileup[pileup.index("--region") + 1] == "chr14"
 
 

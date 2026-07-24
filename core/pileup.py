@@ -50,10 +50,12 @@ def build_command(
 
     * default (``--cpg`` + ``--modified-bases``) uses modkit's *optimized*
       workers — correct for ONT Dorado modBAMs with MN tags;
-    * ``use_general_workers`` swaps ``--cpg`` for ``--motif CG 0`` and drops
-      ``--modified-bases`` so modkit uses its *general* workers. Required for
-      PacBio HiFi modBAMs, where the optimized path rejects every record
-      ("~N failed processing / processed 0 rows"; nanoporetech/modkit #545/#567).
+    * ``use_general_workers`` swaps ``--cpg`` for ``--motif CG 0`` so modkit
+      uses its *general* workers (needed when optimized workers reject every
+      PacBio record; nanoporetech/modkit #545/#567). ``--modified-bases`` is
+      still required: without it, pileup emits one row per mod code (e.g. ``m``
+      and ``h``) at the same CpG, and ``modkit dmr pair`` fails with
+      ``invalid-bedmethyl-data`` / "more than 1 score ... per position".
 
     Validated against bioconda ``ont-modkit`` 0.6.4. Do not add flags that are
     absent from ``modkit pileup --help`` on that version.
@@ -62,19 +64,17 @@ def build_command(
     if region:
         command.extend(["--region", region])
     if use_general_workers:
-        # General workers: CpG motif at offset 0, all mod codes present in the
-        # modBAM are tabulated automatically (no --modified-bases, which would
-        # otherwise force the optimized workers back on).
+        # General workers via motif (not --cpg). Still pass --modified-bases so
+        # 5mC+5hmC land in one bedMethyl row that DMR accepts.
         command.extend(["--motif", "CG", "0"])
     else:
         command.append("--cpg")
     if combine_strands:
         command.append("--combine-strands")
-    if not use_general_workers:
-        # modkit >=0.6 requires an explicit modified base with --cpg;
-        # --filter-threshold follows so the variadic list terminates cleanly.
-        command.append("--modified-bases")
-        command.extend(modified_bases)
+    # Always tabulate every requested mod (plus 5hmC when analysing 5mC) so
+    # valid_coverage == N_mod + N_canonical + N_other for modkit dmr.
+    command.append("--modified-bases")
+    command.extend(modified_bases)
     command.extend(["--filter-threshold", str(filter_threshold)])
     if threads:
         command.extend(["--threads", str(threads)])
