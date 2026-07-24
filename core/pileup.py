@@ -22,6 +22,13 @@ from core.bedmethyl import bedmethyl_has_rows, pileup_modified_bases, validate_b
 from core.subprocess_util import run_checked
 
 
+# Flags that must never be emitted — rejected by bioconda modkit 0.6.x.
+_BANNED_PILEUP_FLAGS = frozenset({
+    "--chunk-size",           # does not exist (use --interval-size / --queue-size)
+    "--force-allow-implicit",  # removed from pileup in modkit 0.6.x
+})
+
+
 def build_command(
     bam: str,
     output: str,
@@ -36,22 +43,20 @@ def build_command(
     suppress_progress: bool = True,
     log_filepath: str | None = None,
     use_general_workers: bool = False,
-    force_allow_implicit: bool = False,
 ) -> list[str]:
     """Assemble a ``modkit pileup`` command.
 
     Two CpG code paths, mirroring modkit's own two worker families:
 
     * default (``--cpg`` + ``--modified-bases``) uses modkit's *optimized*
-      workers. Fast, but they reject records with implicit mod mode (``C+m.``)
-      and (-)-strand calls, which are common in PacBio HiFi modBAMs — every such
-      record is counted as "failed processing" and the pileup comes back empty;
-    * ``use_general_workers`` swaps ``--cpg`` for ``--motif CG 0`` (and drops
-      ``--modified-bases``) so modkit uses its *general* workers, which accept
-      those records. This is modkit's documented remedy for the
-      "~N failed processing / processed 0 rows" signature (nanoporetech/modkit
-      issues #545 and #567). ``--force-allow-implicit`` additionally admits
-      implicit-mode records instead of failing them.
+      workers — correct for ONT Dorado modBAMs with MN tags;
+    * ``use_general_workers`` swaps ``--cpg`` for ``--motif CG 0`` and drops
+      ``--modified-bases`` so modkit uses its *general* workers. Required for
+      PacBio HiFi modBAMs, where the optimized path rejects every record
+      ("~N failed processing / processed 0 rows"; nanoporetech/modkit #545/#567).
+
+    Validated against bioconda ``ont-modkit`` 0.6.4. Do not add flags that are
+    absent from ``modkit pileup --help`` on that version.
     """
     command = ["modkit", "pileup", bam, output, "--ref", reference]
     if region:
@@ -71,8 +76,6 @@ def build_command(
         command.append("--modified-bases")
         command.extend(modified_bases)
     command.extend(["--filter-threshold", str(filter_threshold)])
-    if force_allow_implicit:
-        command.append("--force-allow-implicit")
     if threads:
         command.extend(["--threads", str(threads)])
     if interval_size:
@@ -81,6 +84,9 @@ def build_command(
         command.append("--suppress-progress")
     if log_filepath:
         command.extend(["--log-filepath", log_filepath])
+    banned = _BANNED_PILEUP_FLAGS.intersection(command)
+    if banned:
+        raise RuntimeError(f"modkit pileup command contains unsupported flags: {sorted(banned)}")
     return command
 
 
@@ -202,7 +208,6 @@ def run_pileup(
             interval_size=100_000,
             log_filepath=str(log_path),
             use_general_workers=use_general_workers,
-            force_allow_implicit=use_general_workers,
         )
         if include_bed:
             command.extend(["--include-bed", include_bed])
@@ -217,9 +222,10 @@ def run_pileup(
                 f"modkit pileup produced no rows for {Path(bam).name}"
                 + (f" (region {region})" if region else "")
                 + ".\nEvery read was rejected by modkit (see reasons below). For "
-                "PacBio HiFi modBAMs this is usually implicit mod mode or "
-                "unsupported record types; the general-worker path with "
-                "--force-allow-implicit is already enabled.\n"
+                "PacBio HiFi modBAMs this usually means the optimized CpG workers "
+                "rejected the records; the general-worker path (--motif CG 0) is "
+                "already enabled. If the log mentions implicit mode, convert tags "
+                "with: modkit update-tags --mode explicit <in.bam> <out.bam>\n"
                 + (f"modkit log:\n{reason}" if reason else "modkit produced no log output.")
             )
     try:

@@ -17,7 +17,7 @@ USER $MAMBA_USER
 
 # External binaries the pipeline shells out to (modkit, samtools, tabix).
 RUN micromamba install -y -n base -c conda-forge -c bioconda \
-      python=3.11 ont-modkit samtools htslib pip \
+      python=3.11 ont-modkit=0.6.4 samtools htslib pip \
     && micromamba clean --all --yes
 
 COPY --chown=$MAMBA_USER:$MAMBA_USER . /app

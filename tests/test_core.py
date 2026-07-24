@@ -37,19 +37,40 @@ def test_pileup_can_disable_combine_strands_and_take_multiple_mods():
     assert pileup[index + 3] == "--filter-threshold"
 
 
-def test_general_worker_path_uses_motif_and_allows_implicit():
+def test_general_worker_path_uses_motif_without_banned_flags():
     # PacBio HiFi route: general workers (--motif CG 0) instead of the optimized
-    # --cpg workers, no --modified-bases, and implicit mod mode allowed.
+    # --cpg workers, and no --modified-bases. Never emit flags that bioconda
+    # modkit 0.6.x rejects (--chunk-size, --force-allow-implicit).
     pileup = pileup_command(
         "a.bam", "a.bed.gz", "ref.fa", region="chr14",
-        combine_strands=False, use_general_workers=True, force_allow_implicit=True,
+        combine_strands=False, use_general_workers=True,
     )
     assert "--cpg" not in pileup
     assert "--modified-bases" not in pileup
+    assert "--force-allow-implicit" not in pileup
+    assert "--chunk-size" not in pileup
     motif = pileup.index("--motif")
     assert pileup[motif + 1:motif + 3] == ["CG", "0"]
-    assert "--force-allow-implicit" in pileup
     assert pileup[pileup.index("--region") + 1] == "chr14"
+
+
+def test_pileup_commands_never_emit_banned_flags():
+    for kwargs in (
+        {},
+        {"combine_strands": False, "use_general_workers": True},
+        {"combine_strands": False, "modified_bases": ("5mC", "5hmC")},
+    ):
+        command = pileup_command(
+            "a.bam", "a.bed.gz", "ref.fa", region="chr14",
+            threads=8, interval_size=100_000, **kwargs,
+        )
+        for banned in ("--chunk-size", "--force-allow-implicit"):
+            assert banned not in command
+        # Every flag we emit must look like a real option (starts with --)
+        # or a positional / value. Spot-check the known-good options.
+        for flag in ("--ref", "--region", "--filter-threshold", "--threads",
+                     "--interval-size", "--suppress-progress"):
+            assert flag in command
 
 
 def test_n_other_is_recomputed():
